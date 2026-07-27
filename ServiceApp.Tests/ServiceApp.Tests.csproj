@@ -28,4 +28,10 @@
     <ProjectReference Include="..\ServiceApp.Core\ServiceApp.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="TestData\SampleReports\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

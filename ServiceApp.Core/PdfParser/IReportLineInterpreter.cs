@@ -25,11 +25,15 @@ public interface IReportLineInterpreter
     string FormatName { get; }
 
     /// <summary>
-    /// Versucht, die übergebene, aus dem PDF rekonstruierte Textzeile als Anrufdatensatz
-    /// zu interpretieren.
+    /// Versucht, die übergebene, aus dem PDF rekonstruierte Textzeile als Anrufdatensätze
+    /// zu interpretieren. Eine Zeile kann dabei zu mehreren Anrufen führen - manche
+    /// Berichtsformate (z. B. stundenweise aggregierte Zählwerte) fassen mehrere Anrufe in
+    /// einer Tabellenzeile zusammen.
     /// </summary>
     /// <param name="line">Eine einzelne, positionsbasiert rekonstruierte Zeile aus dem PDF.</param>
-    /// <param name="result">Das Interpretationsergebnis, falls die Zeile erkannt wurde.</param>
-    /// <returns><c>true</c>, wenn die Zeile als Anrufdatensatz dieses Formats erkannt wurde.</returns>
-    bool TryInterpret(string line, out InterpretedLine result);
+    /// <returns>
+    /// Die aus dieser Zeile erkannten Anrufe, oder eine leere Liste, wenn die Zeile von
+    /// diesem Interpreter nicht als Teil seines Formats erkannt wird.
+    /// </returns>
+    IReadOnlyList<InterpretedLine> Interpret(string line);
 }

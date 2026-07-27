@@ -67,7 +67,7 @@ public sealed class PdfPigReportParser : IPdfReportParser
 
         foreach (var line in lines)
         {
-            if (bestInterpreter.TryInterpret(line, out var interpreted))
+            foreach (var interpreted in bestInterpreter.Interpret(line))
             {
                 records.Add(new CallRecord(
                     serviceNumberId,
@@ -112,7 +112,7 @@ public sealed class PdfPigReportParser : IPdfReportParser
 
         foreach (var interpreter in _interpreters)
         {
-            var matchCount = lines.Count(line => interpreter.TryInterpret(line, out _));
+            var matchCount = lines.Count(line => interpreter.Interpret(line).Count > 0);
             if (matchCount > bestMatchCount)
             {
                 bestMatchCount = matchCount;

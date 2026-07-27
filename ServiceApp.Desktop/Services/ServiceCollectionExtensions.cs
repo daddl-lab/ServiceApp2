@@ -23,6 +23,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ISettingsService, JsonSettingsService>();
         services.AddSingleton<IReportLineInterpreter, GermanTableLineInterpreter>();
         services.AddSingleton<IReportLineInterpreter, IsoTableLineInterpreter>();
+        services.AddSingleton<IReportLineInterpreter, SwyxVisualGroupsHourlyInterpreter>();
         services.AddSingleton<IPdfReportParser, PdfPigReportParser>();
         services.AddSingleton<ICallRecordRepository, PdfCallRecordRepository>();
         services.AddSingleton<IStatisticsService, StatisticsService>();

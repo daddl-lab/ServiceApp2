@@ -37,25 +37,23 @@ public abstract class RegexTableLineInterpreterBase : IReportLineInterpreter
     protected abstract CallStatus? DetermineStatus(string line);
 
     /// <inheritdoc />
-    public bool TryInterpret(string line, out InterpretedLine result)
+    public IReadOnlyList<InterpretedLine> Interpret(string line)
     {
-        result = default;
-
         if (!TryExtractDate(line, out var date, out _, out _))
         {
-            return false;
+            return Array.Empty<InterpretedLine>();
         }
 
         var timeMatches = TimeRegex.Matches(line);
         if (timeMatches.Count == 0)
         {
-            return false;
+            return Array.Empty<InterpretedLine>();
         }
 
         var status = DetermineStatus(line);
         if (status is null)
         {
-            return false;
+            return Array.Empty<InterpretedLine>();
         }
 
         var callTimeMatch = timeMatches[0];
@@ -66,8 +64,7 @@ public abstract class RegexTableLineInterpreterBase : IReportLineInterpreter
             ? ParseDurationSeconds(timeMatches[1])
             : null;
 
-        result = new InterpretedLine(timestamp, status.Value, durationSeconds);
-        return true;
+        return new[] { new InterpretedLine(timestamp, status.Value, durationSeconds) };
     }
 
     private static TimeOnly ParseTimeOfDay(Match match)

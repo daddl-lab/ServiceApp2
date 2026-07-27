@@ -44,6 +44,11 @@ public sealed class ServiceNumberStatistics
     /// <summary>Der Tag mit den wenigsten Anrufen im Zeitraum (aber mindestens einem Anruf), sofern Daten vorhanden sind.</summary>
     public DailyCallCount? WorstDay { get; init; }
 
-    /// <summary>Durchschnittliche Annahmequote über alle Tage mit Anrufen, in Prozent.</summary>
-    public double AverageAnswerRatePercent { get; init; }
+    /// <summary>
+    /// Durchschnittliche Annahmequote im Zeitraum, in Prozent. Nach Anrufvolumen
+    /// gewichtet (entspricht <see cref="AnsweredPercent"/>) statt als ungewichteter
+    /// Mittelwert der Tagesquoten, damit die Kennzahl bei schwankendem Anrufaufkommen
+    /// nicht von der tatsächlichen Gesamtquote abweicht.
+    /// </summary>
+    public double AverageAnswerRatePercent => AnsweredPercent;
 }

@@ -37,10 +37,6 @@ public sealed class StatisticsService : IStatisticsService
             ? 0
             : daysWithCalls.Average(d => d.TotalCalls);
 
-        var averageAnswerRate = daysWithCalls.Count == 0
-            ? 0
-            : daysWithCalls.Average(d => d.AnswerRatePercent);
-
         DailyCallCount? bestDay = daysWithCalls.Count == 0
             ? null
             : daysWithCalls.MaxBy(d => d.TotalCalls);
@@ -60,8 +56,7 @@ public sealed class StatisticsService : IStatisticsService
             HourlyDistribution = hourlyDistribution,
             AverageCallsPerDay = averageCallsPerDay,
             BestDay = bestDay,
-            WorstDay = worstDay,
-            AverageAnswerRatePercent = averageAnswerRate
+            WorstDay = worstDay
         };
     }
 

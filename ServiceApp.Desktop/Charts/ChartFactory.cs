@@ -87,6 +87,59 @@ public static class ChartFactory
         };
     }
 
+    /// <summary>
+    /// Häufigkeitsdiagramm mit je einer Serie pro Servicenummer, für die
+    /// "Servicenummer einzeln"-Ansicht (zwei Balken- oder Linienserien in einem
+    /// Diagramm statt eines gemeinsamen Summenwerts).
+    /// </summary>
+    public static ISeries[] CreateHourlyFrequencyComparisonSeries(
+        string firstName, IReadOnlyList<HourlyCallCount> firstHourly,
+        string secondName, IReadOnlyList<HourlyCallCount> secondHourly,
+        bool asLineChart)
+    {
+        var firstValues = firstHourly.Select(h => h.TotalCalls).ToArray();
+        var secondValues = secondHourly.Select(h => h.TotalCalls).ToArray();
+
+        if (asLineChart)
+        {
+            return new ISeries[]
+            {
+                new LineSeries<int>
+                {
+                    Name = firstName,
+                    Values = firstValues,
+                    Fill = null,
+                    Stroke = new SolidColorPaint(TotalColor) { StrokeThickness = 2 },
+                    GeometrySize = 3
+                },
+                new LineSeries<int>
+                {
+                    Name = secondName,
+                    Values = secondValues,
+                    Fill = null,
+                    Stroke = new SolidColorPaint(SecondSeriesColor) { StrokeThickness = 2 },
+                    GeometrySize = 3
+                }
+            };
+        }
+
+        return new ISeries[]
+        {
+            new ColumnSeries<int>
+            {
+                Name = firstName,
+                Values = firstValues,
+                Fill = new SolidColorPaint(TotalColor)
+            },
+            new ColumnSeries<int>
+            {
+                Name = secondName,
+                Values = secondValues,
+                Fill = new SolidColorPaint(SecondSeriesColor)
+            }
+        };
+    }
+
     /// <summary>Beschriftungen der X-Achse für die Stundenverteilung (00 bis 23 Uhr).</summary>
     public static Axis[] CreateHourlyXAxes()
     {

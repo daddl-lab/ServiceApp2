@@ -7,19 +7,28 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Zeitraum-Filter -->
+        <!-- Zeitraum-Filter + Diagramm-Auswahl -->
         <Border Grid.Row="0" Padding="16 12" Background="{DynamicResource SystemAltHighColor}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="Heute" Command="{Binding SelectTodayCommand}" />
-                <Button Content="Diese Woche" Command="{Binding SelectThisWeekCommand}" />
-                <Button Content="Dieser Monat" Command="{Binding SelectThisMonthCommand}" />
-                <TextBlock Text="Benutzerdefiniert:" VerticalAlignment="Center" Margin="16 0 0 0" />
-                <CalendarDatePicker SelectedDate="{Binding CustomRangeStart}" Width="140" />
-                <TextBlock Text="bis" VerticalAlignment="Center" />
-                <CalendarDatePicker SelectedDate="{Binding CustomRangeEnd}" Width="140" />
-                <Button Content="Anwenden" Command="{Binding ApplyCustomRangeCommand}" />
-                <Button Content="Aktualisieren" Command="{Binding ReloadCommand}" Margin="16 0 0 0" />
-                <TextBlock Text="Lädt…" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="8 0 0 0" />
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Heute" Command="{Binding SelectTodayCommand}" />
+                    <Button Content="Diese Woche" Command="{Binding SelectThisWeekCommand}" />
+                    <Button Content="Dieser Monat" Command="{Binding SelectThisMonthCommand}" />
+                    <TextBlock Text="Benutzerdefiniert:" VerticalAlignment="Center" Margin="16 0 0 0" />
+                    <CalendarDatePicker SelectedDate="{Binding CustomRangeStart}" Width="140" />
+                    <TextBlock Text="bis" VerticalAlignment="Center" />
+                    <CalendarDatePicker SelectedDate="{Binding CustomRangeEnd}" Width="140" />
+                    <Button Content="Anwenden" Command="{Binding ApplyCustomRangeCommand}" />
+                    <Button Content="Aktualisieren" Command="{Binding ReloadCommand}" Margin="16 0 0 0" />
+                    <TextBlock Text="Lädt…" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="8 0 0 0" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Diagramme:" VerticalAlignment="Center" />
+                    <Button Content="Summe beider Nummern" Command="{Binding SelectCombinedChartViewCommand}" />
+                    <Button Content="Beide einzeln" Command="{Binding SelectSeparateChartViewCommand}" />
+                    <Button Content="{Binding FirstSummary.Name}" Command="{Binding SelectFirstOnlyChartViewCommand}" />
+                    <Button Content="{Binding SecondSummary.Name}" Command="{Binding SelectSecondOnlyChartViewCommand}" />
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -94,14 +103,29 @@
                     <Border Classes="card" Grid.Column="0" Margin="0 0 8 0">
                         <StackPanel>
                             <TextBlock Text="Zeitlicher Verlauf" Classes="sectionTitle" />
-                            <lvc:CartesianChart Series="{Binding TrendSeries}" XAxes="{Binding TrendXAxes}" Height="240" />
+                            <lvc:CartesianChart Series="{Binding TrendSeries}" XAxes="{Binding TrendXAxes}" Height="240"
+                                                 LegendPosition="Bottom" />
                         </StackPanel>
                     </Border>
                     <Border Classes="card" Grid.Column="1">
                         <StackPanel>
                             <TextBlock Text="Angenommen / Verpasst" Classes="sectionTitle" />
+
                             <lvc:PieChart Series="{Binding AnswerPieSeries}" Width="260" Height="240"
-                                          InitialRotation="0" MaxAngle="360" />
+                                          InitialRotation="0" MaxAngle="360" IsVisible="{Binding IsChartViewSingle}" />
+
+                            <Grid ColumnDefinitions="1*,1*" IsVisible="{Binding IsChartViewSeparate}">
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding FirstSummary.Name}" HorizontalAlignment="Center" FontSize="12" Opacity="0.8" />
+                                    <lvc:PieChart Series="{Binding FirstAnswerPieSeries}" Width="150" Height="200"
+                                                  InitialRotation="0" MaxAngle="360" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="{Binding SecondSummary.Name}" HorizontalAlignment="Center" FontSize="12" Opacity="0.8" />
+                                    <lvc:PieChart Series="{Binding SecondAnswerPieSeries}" Width="150" Height="200"
+                                                  InitialRotation="0" MaxAngle="360" />
+                                </StackPanel>
+                            </Grid>
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -113,7 +137,8 @@
                             <Button DockPanel.Dock="Right" Content="Balken / Linie umschalten" Command="{Binding ToggleFrequencyChartModeCommand}" />
                             <TextBlock Text="Häufigkeit der Anrufe (Stoßzeiten nach Uhrzeit)" Classes="sectionTitle" />
                         </DockPanel>
-                        <lvc:CartesianChart Series="{Binding FrequencySeries}" XAxes="{Binding FrequencyXAxes}" Height="220" />
+                        <lvc:CartesianChart Series="{Binding FrequencySeries}" XAxes="{Binding FrequencyXAxes}" Height="220"
+                                             LegendPosition="Bottom" />
                     </StackPanel>
                 </Border>
 

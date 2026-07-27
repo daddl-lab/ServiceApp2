@@ -37,6 +37,13 @@ public sealed partial class DashboardViewModel : ViewModelBase
     private ServiceNumberSettings _firstSettings = new() { Id = "service-1", Name = "Servicenummer 1" };
     private ServiceNumberSettings _secondSettings = new() { Id = "service-2", Name = "Servicenummer 2" };
 
+    // Zuletzt berechnete Statistiken für den aktuellen Zeitraum, zwischengespeichert
+    // damit ein Wechsel der Diagramm-Auswahl (<see cref="ChartViewMode"/>) oder der
+    // Balken/Linie-Darstellung die Kennzahlen nicht neu berechnen muss.
+    private ServiceNumberStatistics? _firstStats;
+    private ServiceNumberStatistics? _secondStats;
+    private ServiceNumberStatistics? _combinedStats;
+
     [ObservableProperty]
     private DateRangePreset _selectedPreset = DateRangePreset.ThisMonth;
 
@@ -48,6 +55,17 @@ public sealed partial class DashboardViewModel : ViewModelBase
 
     [ObservableProperty]
     private FrequencyChartMode _frequencyChartMode = FrequencyChartMode.Bar;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChartViewSeparate))]
+    [NotifyPropertyChangedFor(nameof(IsChartViewSingle))]
+    private ChartViewMode _chartViewMode = ChartViewMode.Combined;
+
+    /// <summary>Ob aktuell beide Servicenummern als getrennte Serien dargestellt werden.</summary>
+    public bool IsChartViewSeparate => ChartViewMode == ChartViewMode.Separate;
+
+    /// <summary>Ob aktuell eine einzelne Serie (Summe, Nr. 1 oder Nr. 2 allein) dargestellt wird.</summary>
+    public bool IsChartViewSingle => !IsChartViewSeparate;
 
     [ObservableProperty]
     private bool _isBusy;
@@ -72,6 +90,8 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [ObservableProperty] private ISeries[] _frequencySeries = Array.Empty<ISeries>();
     [ObservableProperty] private Axis[] _frequencyXAxes = { new Axis() };
     [ObservableProperty] private ISeries[] _answerPieSeries = Array.Empty<ISeries>();
+    [ObservableProperty] private ISeries[] _firstAnswerPieSeries = Array.Empty<ISeries>();
+    [ObservableProperty] private ISeries[] _secondAnswerPieSeries = Array.Empty<ISeries>();
 
     // Vergleich beider Servicenummern
     [ObservableProperty] private ServiceNumberSummary _firstSummary = ServiceNumberSummary.Empty("Servicenummer 1");
@@ -195,8 +215,35 @@ public sealed partial class DashboardViewModel : ViewModelBase
             ? FrequencyChartMode.Line
             : FrequencyChartMode.Bar;
 
-        var combined = BuildCombinedStatistics(BuildCurrentRange());
-        FrequencySeries = ChartFactory.CreateHourlyFrequencySeries(combined.HourlyDistribution, FrequencyChartMode == FrequencyChartMode.Line);
+        UpdateChartSeries();
+    }
+
+    [RelayCommand]
+    private void SelectCombinedChartView()
+    {
+        ChartViewMode = ChartViewMode.Combined;
+        UpdateChartSeries();
+    }
+
+    [RelayCommand]
+    private void SelectSeparateChartView()
+    {
+        ChartViewMode = ChartViewMode.Separate;
+        UpdateChartSeries();
+    }
+
+    [RelayCommand]
+    private void SelectFirstOnlyChartView()
+    {
+        ChartViewMode = ChartViewMode.FirstOnly;
+        UpdateChartSeries();
+    }
+
+    [RelayCommand]
+    private void SelectSecondOnlyChartView()
+    {
+        ChartViewMode = ChartViewMode.SecondOnly;
+        UpdateChartSeries();
     }
 
     /// <summary>
@@ -232,6 +279,10 @@ public sealed partial class DashboardViewModel : ViewModelBase
         var secondStats = _statisticsService.Compute(_secondSettings.Id, _secondSettings.Name, _secondRecords, range);
         var combined = BuildCombinedStatistics(range);
 
+        _firstStats = firstStats;
+        _secondStats = secondStats;
+        _combinedStats = combined;
+
         TotalCalls = combined.TotalCalls;
         AverageCallsPerDay = Math.Round(combined.AverageCallsPerDay, 1);
         AverageAnswerRatePercent = Math.Round(combined.AverageAnswerRatePercent, 1);
@@ -241,12 +292,6 @@ public sealed partial class DashboardViewModel : ViewModelBase
         MissedPercent = Math.Round(combined.MissedPercent, 1);
         BestDayText = combined.BestDay is null ? "–" : $"{combined.BestDay.Date:dd.MM.yyyy} ({combined.BestDay.TotalCalls} Anrufe)";
         WorstDayText = combined.WorstDay is null ? "–" : $"{combined.WorstDay.Date:dd.MM.yyyy} ({combined.WorstDay.TotalCalls} Anrufe)";
-
-        TrendSeries = ChartFactory.CreateDailyTrendSeries(combined.DailyCounts);
-        TrendXAxes = ChartFactory.CreateDailyTrendXAxes(combined.DailyCounts);
-        FrequencySeries = ChartFactory.CreateHourlyFrequencySeries(combined.HourlyDistribution, FrequencyChartMode == FrequencyChartMode.Line);
-        FrequencyXAxes = ChartFactory.CreateHourlyXAxes();
-        AnswerPieSeries = ChartFactory.CreateAnsweredVsMissedPieSeries(combined.AnsweredCalls, combined.MissedCalls);
 
         FirstSummary = new ServiceNumberSummary(firstStats.ServiceNumberName, firstStats.TotalCalls, firstStats.AnsweredCalls, firstStats.MissedCalls, Math.Round(firstStats.AnsweredPercent, 1));
         SecondSummary = new ServiceNumberSummary(secondStats.ServiceNumberName, secondStats.TotalCalls, secondStats.AnsweredCalls, secondStats.MissedCalls, Math.Round(secondStats.AnsweredPercent, 1));
@@ -259,5 +304,61 @@ public sealed partial class DashboardViewModel : ViewModelBase
         ComparisonTrendSeries = ChartFactory.CreateComparisonTrendSeries(
             firstStats.ServiceNumberName, firstStats.DailyCounts,
             secondStats.ServiceNumberName, secondStats.DailyCounts);
+
+        UpdateChartSeries();
+    }
+
+    /// <summary>
+    /// Baut die Serien der drei Hauptdiagramme (Zeitlicher Verlauf, Häufigkeit,
+    /// Angenommen/Verpasst) anhand der zwischengespeicherten Statistiken und der
+    /// aktuell gewählten <see cref="ChartViewMode"/> neu auf. Wird sowohl nach einer
+    /// vollständigen Neuberechnung als auch bei einem reinen Anzeige-Wechsel
+    /// (Auswahl-Buttons, Balken/Linie-Umschalter) aufgerufen, ohne dass dafür die
+    /// zugrunde liegenden Kennzahlen neu berechnet werden müssen.
+    /// </summary>
+    private void UpdateChartSeries()
+    {
+        if (_firstStats is null || _secondStats is null || _combinedStats is null)
+        {
+            return;
+        }
+
+        TrendXAxes = ChartFactory.CreateDailyTrendXAxes(_combinedStats.DailyCounts);
+        FrequencyXAxes = ChartFactory.CreateHourlyXAxes();
+        var asLineChart = FrequencyChartMode == FrequencyChartMode.Line;
+
+        switch (ChartViewMode)
+        {
+            case ChartViewMode.Separate:
+                TrendSeries = ChartFactory.CreateComparisonTrendSeries(
+                    _firstStats.ServiceNumberName, _firstStats.DailyCounts,
+                    _secondStats.ServiceNumberName, _secondStats.DailyCounts);
+                FrequencySeries = ChartFactory.CreateHourlyFrequencyComparisonSeries(
+                    _firstStats.ServiceNumberName, _firstStats.HourlyDistribution,
+                    _secondStats.ServiceNumberName, _secondStats.HourlyDistribution,
+                    asLineChart);
+                FirstAnswerPieSeries = ChartFactory.CreateAnsweredVsMissedPieSeries(_firstStats.AnsweredCalls, _firstStats.MissedCalls);
+                SecondAnswerPieSeries = ChartFactory.CreateAnsweredVsMissedPieSeries(_secondStats.AnsweredCalls, _secondStats.MissedCalls);
+                break;
+
+            case ChartViewMode.FirstOnly:
+                TrendSeries = ChartFactory.CreateDailyTrendSeries(_firstStats.DailyCounts);
+                FrequencySeries = ChartFactory.CreateHourlyFrequencySeries(_firstStats.HourlyDistribution, asLineChart);
+                AnswerPieSeries = ChartFactory.CreateAnsweredVsMissedPieSeries(_firstStats.AnsweredCalls, _firstStats.MissedCalls);
+                break;
+
+            case ChartViewMode.SecondOnly:
+                TrendSeries = ChartFactory.CreateDailyTrendSeries(_secondStats.DailyCounts);
+                FrequencySeries = ChartFactory.CreateHourlyFrequencySeries(_secondStats.HourlyDistribution, asLineChart);
+                AnswerPieSeries = ChartFactory.CreateAnsweredVsMissedPieSeries(_secondStats.AnsweredCalls, _secondStats.MissedCalls);
+                break;
+
+            case ChartViewMode.Combined:
+            default:
+                TrendSeries = ChartFactory.CreateDailyTrendSeries(_combinedStats.DailyCounts);
+                FrequencySeries = ChartFactory.CreateHourlyFrequencySeries(_combinedStats.HourlyDistribution, asLineChart);
+                AnswerPieSeries = ChartFactory.CreateAnsweredVsMissedPieSeries(_combinedStats.AnsweredCalls, _combinedStats.MissedCalls);
+                break;
+        }
     }
 }

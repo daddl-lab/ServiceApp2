@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ServiceApp.Desktop.ViewModels"
+        x:Class="ServiceApp.Desktop.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Telefonberichts-Auswertung"
+        Width="1280" Height="800"
+        MinWidth="1000" MinHeight="650">
+
+    <DockPanel>
+        <Border DockPanel.Dock="Top" Padding="16 10" Background="{DynamicResource SystemAltHighColor}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Dashboard" Command="{Binding ShowDashboardCommand}" />
+                <Button Content="Einstellungen" Command="{Binding ShowSettingsCommand}" />
+            </StackPanel>
+        </Border>
+
+        <ContentControl Content="{Binding CurrentPage}" />
+    </DockPanel>
+
+</Window>

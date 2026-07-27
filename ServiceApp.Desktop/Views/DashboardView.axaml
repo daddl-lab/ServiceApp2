@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ServiceApp.Desktop.ViewModels"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="ServiceApp.Desktop.Views.DashboardView"
+             x:DataType="vm:DashboardViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Zeitraum-Filter -->
+        <Border Grid.Row="0" Padding="16 12" Background="{DynamicResource SystemAltHighColor}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Heute" Command="{Binding SelectTodayCommand}" />
+                <Button Content="Diese Woche" Command="{Binding SelectThisWeekCommand}" />
+                <Button Content="Dieser Monat" Command="{Binding SelectThisMonthCommand}" />
+                <TextBlock Text="Benutzerdefiniert:" VerticalAlignment="Center" Margin="16 0 0 0" />
+                <CalendarDatePicker SelectedDate="{Binding CustomRangeStart}" Width="140" />
+                <TextBlock Text="bis" VerticalAlignment="Center" />
+                <CalendarDatePicker SelectedDate="{Binding CustomRangeEnd}" Width="140" />
+                <Button Content="Anwenden" Command="{Binding ApplyCustomRangeCommand}" />
+                <Button Content="Aktualisieren" Command="{Binding ReloadCommand}" Margin="16 0 0 0" />
+                <TextBlock Text="Lädt…" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="8 0 0 0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Fehler-/Hinweisbanner -->
+        <Border Grid.Row="1" Padding="16 8" Background="#33C62828" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource MissedBrush}" TextWrapping="Wrap" />
+        </Border>
+
+        <ScrollViewer Grid.Row="2" Padding="16">
+            <StackPanel Spacing="16">
+
+                <!-- Kennzahlen-Karten -->
+                <UniformGrid Columns="4" Rows="1">
+                    <Border Classes="card" Margin="0 0 8 0">
+                        <StackPanel>
+                            <TextBlock Text="Gesamtanzahl Anrufe" Classes="metricLabel" />
+                            <TextBlock Text="{Binding TotalCalls}" Classes="metricValue" Foreground="{StaticResource TotalBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card" Margin="0 0 8 0">
+                        <StackPanel>
+                            <TextBlock Text="Ø Anrufe / Tag" Classes="metricLabel" />
+                            <TextBlock Text="{Binding AverageCallsPerDay}" Classes="metricValue" Foreground="{StaticResource TotalBrush}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card" Margin="0 0 8 0">
+                        <StackPanel>
+                            <TextBlock Text="Bester Tag" Classes="metricLabel" />
+                            <TextBlock Text="{Binding BestDayText}" FontSize="16" FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Schwächster Tag" Classes="metricLabel" />
+                            <TextBlock Text="{Binding WorstDayText}" FontSize="16" FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Angenommen / Verpasst / Ø Annahmequote -->
+                <UniformGrid Columns="3" Rows="1">
+                    <Border Classes="card" Margin="0 0 8 0">
+                        <StackPanel>
+                            <TextBlock Text="Angenommene Anrufe" Classes="metricLabel" />
+                            <TextBlock Text="{Binding AnsweredCalls}" Classes="metricValue" Foreground="{StaticResource AnsweredBrush}" />
+                            <TextBlock Foreground="{StaticResource AnsweredBrush}">
+                                <Run Text="{Binding AnsweredPercent}" /><Run Text=" %" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card" Margin="0 0 8 0">
+                        <StackPanel>
+                            <TextBlock Text="Verpasste Anrufe" Classes="metricLabel" />
+                            <TextBlock Text="{Binding MissedCalls}" Classes="metricValue" Foreground="{StaticResource MissedBrush}" />
+                            <TextBlock Foreground="{StaticResource MissedBrush}">
+                                <Run Text="{Binding MissedPercent}" /><Run Text=" %" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Ø Annahmequote" Classes="metricLabel" />
+                            <TextBlock Classes="metricValue">
+                                <Run Text="{Binding AverageAnswerRatePercent}" /><Run Text=" %" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Zeitlicher Verlauf + Angenommen/Verpasst-Kreisdiagramm -->
+                <Grid ColumnDefinitions="2*,1*">
+                    <Border Classes="card" Grid.Column="0" Margin="0 0 8 0">
+                        <StackPanel>
+                            <TextBlock Text="Zeitlicher Verlauf" Classes="sectionTitle" />
+                            <lvc:CartesianChart Series="{Binding TrendSeries}" XAxes="{Binding TrendXAxes}" Height="240" />
+                        </StackPanel>
+                    </Border>
+                    <Border Classes="card" Grid.Column="1">
+                        <StackPanel>
+                            <TextBlock Text="Angenommen / Verpasst" Classes="sectionTitle" />
+                            <lvc:PieChart Series="{Binding AnswerPieSeries}" Width="260" Height="240"
+                                          InitialRotation="0" MaxAngle="360" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Häufigkeit der Anrufe / Stoßzeiten -->
+                <Border Classes="card">
+                    <StackPanel>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Content="Balken / Linie umschalten" Command="{Binding ToggleFrequencyChartModeCommand}" />
+                            <TextBlock Text="Häufigkeit der Anrufe (Stoßzeiten nach Uhrzeit)" Classes="sectionTitle" />
+                        </DockPanel>
+                        <lvc:CartesianChart Series="{Binding FrequencySeries}" XAxes="{Binding FrequencyXAxes}" Height="220" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Vergleich beider Servicenummern -->
+                <Border Classes="card">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Vergleich beider Servicenummern" Classes="sectionTitle" />
+
+                        <UniformGrid Columns="2" Rows="1">
+                            <Border Padding="12" Margin="0 0 8 0" BorderBrush="{StaticResource TotalBrush}" BorderThickness="1" CornerRadius="6">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding FirstSummary.Name}" FontWeight="Bold" />
+                                    <TextBlock>
+                                        <Run Text="Gesamt: " /><Run Text="{Binding FirstSummary.Total}" />
+                                    </TextBlock>
+                                    <TextBlock Foreground="{StaticResource AnsweredBrush}">
+                                        <Run Text="Angenommen: " /><Run Text="{Binding FirstSummary.Answered}" />
+                                    </TextBlock>
+                                    <TextBlock Foreground="{StaticResource MissedBrush}">
+                                        <Run Text="Verpasst: " /><Run Text="{Binding FirstSummary.Missed}" />
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Annahmequote: " /><Run Text="{Binding FirstSummary.AnswerRatePercent}" /><Run Text=" %" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                            <Border Padding="12" BorderBrush="#F9A825" BorderThickness="1" CornerRadius="6">
+                                <StackPanel Spacing="4">
+                                    <TextBlock Text="{Binding SecondSummary.Name}" FontWeight="Bold" />
+                                    <TextBlock>
+                                        <Run Text="Gesamt: " /><Run Text="{Binding SecondSummary.Total}" />
+                                    </TextBlock>
+                                    <TextBlock Foreground="{StaticResource AnsweredBrush}">
+                                        <Run Text="Angenommen: " /><Run Text="{Binding SecondSummary.Answered}" />
+                                    </TextBlock>
+                                    <TextBlock Foreground="{StaticResource MissedBrush}">
+                                        <Run Text="Verpasst: " /><Run Text="{Binding SecondSummary.Missed}" />
+                                    </TextBlock>
+                                    <TextBlock>
+                                        <Run Text="Annahmequote: " /><Run Text="{Binding SecondSummary.AnswerRatePercent}" /><Run Text=" %" />
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <Grid ColumnDefinitions="1*,1*">
+                            <StackPanel Grid.Column="0" Margin="0 0 8 0">
+                                <TextBlock Text="Gesamtanrufe im Vergleich" FontWeight="SemiBold" Margin="0 0 0 4" />
+                                <lvc:CartesianChart Series="{Binding ComparisonTotalsSeries}" Height="200" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="Verlauf im Vergleich" FontWeight="SemiBold" Margin="0 0 0 4" />
+                                <lvc:CartesianChart Series="{Binding ComparisonTrendSeries}" XAxes="{Binding TrendXAxes}" Height="200" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+
+</UserControl>

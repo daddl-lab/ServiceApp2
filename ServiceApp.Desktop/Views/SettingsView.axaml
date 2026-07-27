@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ServiceApp.Desktop.ViewModels"
+             x:Class="ServiceApp.Desktop.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="20" MaxWidth="700">
+
+            <TextBlock Text="Einstellungen" FontSize="24" FontWeight="Bold" />
+            <TextBlock Text="Konfigurieren Sie Name und PDF-Ordner für beide Servicenummern. Die Einstellungen werden dauerhaft gespeichert und beim nächsten Programmstart automatisch geladen."
+                       TextWrapping="Wrap" Opacity="0.75" />
+
+            <Border Classes="card">
+                <StackPanel Spacing="10" DataContext="{Binding FirstServiceNumber}">
+                    <TextBlock Text="Servicenummer 1" Classes="sectionTitle" />
+                    <TextBlock Text="Name" />
+                    <TextBox Text="{Binding Name}" Watermark="z. B. Support-Hotline" />
+                    <TextBlock Text="PDF-Ordner" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Durchsuchen…" Command="{Binding BrowseFolderCommand}" Margin="8 0 0 0" />
+                        <TextBox Text="{Binding PdfFolderPath}" Watermark="Pfad zum PDF-Ordner" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding ValidationMessage}" Foreground="{StaticResource MissedBrush}"
+                               IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="10" DataContext="{Binding SecondServiceNumber}">
+                    <TextBlock Text="Servicenummer 2" Classes="sectionTitle" />
+                    <TextBlock Text="Name" />
+                    <TextBox Text="{Binding Name}" Watermark="z. B. Vertriebs-Hotline" />
+                    <TextBlock Text="PDF-Ordner" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Durchsuchen…" Command="{Binding BrowseFolderCommand}" Margin="8 0 0 0" />
+                        <TextBox Text="{Binding PdfFolderPath}" Watermark="Pfad zum PDF-Ordner" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding ValidationMessage}" Foreground="{StaticResource MissedBrush}"
+                               IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Content="Speichern" Command="{Binding SaveCommand}" Classes="accent" />
+                <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Opacity="0.8" />
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+
+</UserControl>

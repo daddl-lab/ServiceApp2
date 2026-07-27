@@ -1,0 +1,15 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Zentrale Farbdefinitionen für die farbliche Kennzeichnung im Dashboard:
+         Grün = angenommene Anrufe, Rot = verpasste Anrufe, Blau = Gesamtstatistik. -->
+
+    <Color x:Key="AnsweredColor">#2E7D32</Color>
+    <Color x:Key="MissedColor">#C62828</Color>
+    <Color x:Key="TotalColor">#1565C0</Color>
+
+    <SolidColorBrush x:Key="AnsweredBrush" Color="{StaticResource AnsweredColor}" />
+    <SolidColorBrush x:Key="MissedBrush" Color="{StaticResource MissedColor}" />
+    <SolidColorBrush x:Key="TotalBrush" Color="{StaticResource TotalColor}" />
+
+</ResourceDictionary>

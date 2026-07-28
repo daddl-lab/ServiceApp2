@@ -20,16 +20,29 @@ public static class ChartFactory
     private static readonly SKColor SecondSeriesColor = new(0xF9, 0xA8, 0x25);
 
     /// <summary>
-    /// Liniendiagramm des zeitlichen Verlaufs: eine Serie mit der Gesamtanzahl der
-    /// Anrufe je Tag im gefilterten Zeitraum.
+    /// Diagramm des zeitlichen Verlaufs: eine Linie mit der Gesamtanzahl der Anrufe je
+    /// Tag, ergänzt um zwei Balkenserien für angenommene und verpasste Anrufe je Tag,
+    /// damit neben dem reinen Anrufvolumen auch dessen Zusammensetzung sichtbar wird.
     /// </summary>
     public static ISeries[] CreateDailyTrendSeries(IReadOnlyList<DailyCallCount> dailyCounts)
     {
         return new ISeries[]
         {
+            new ColumnSeries<int>
+            {
+                Name = "Angenommen",
+                Values = dailyCounts.Select(d => d.AnsweredCalls).ToArray(),
+                Fill = new SolidColorPaint(AnsweredColor)
+            },
+            new ColumnSeries<int>
+            {
+                Name = "Verpasst",
+                Values = dailyCounts.Select(d => d.MissedCalls).ToArray(),
+                Fill = new SolidColorPaint(MissedColor)
+            },
             new LineSeries<int>
             {
-                Name = "Anrufe pro Tag",
+                Name = "Gesamt",
                 Values = dailyCounts.Select(d => d.TotalCalls).ToArray(),
                 Fill = null,
                 Stroke = new SolidColorPaint(TotalColor) { StrokeThickness = 2 },
@@ -173,34 +186,9 @@ public static class ChartFactory
     }
 
     /// <summary>
-    /// Gruppiertes Balkendiagramm für den Vergleich zweier Servicenummern über eine
-    /// beliebige Kennzahl (z. B. Gesamtanrufe, angenommen, verpasst).
-    /// </summary>
-    public static ISeries[] CreateComparisonColumnSeries(
-        string firstName, int firstValue,
-        string secondName, int secondValue,
-        string metricLabel)
-    {
-        return new ISeries[]
-        {
-            new ColumnSeries<int>
-            {
-                Name = firstName,
-                Values = new[] { firstValue },
-                Fill = new SolidColorPaint(TotalColor)
-            },
-            new ColumnSeries<int>
-            {
-                Name = secondName,
-                Values = new[] { secondValue },
-                Fill = new SolidColorPaint(SecondSeriesColor)
-            }
-        };
-    }
-
-    /// <summary>
     /// Verlaufsvergleich beider Servicenummern als zwei überlagerte Linienserien über
-    /// denselben Zeitraum.
+    /// denselben Zeitraum. Wird für die "Beide einzeln"-Ansicht des Zeitlicher-Verlauf-
+    /// Diagramms verwendet.
     /// </summary>
     public static ISeries[] CreateComparisonTrendSeries(
         string firstName, IReadOnlyList<DailyCallCount> firstDaily,

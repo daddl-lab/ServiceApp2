@@ -68,8 +68,8 @@
                     </Border>
                 </UniformGrid>
 
-                <!-- Angenommen / Verpasst / Ø Annahmequote -->
-                <UniformGrid Columns="3" Rows="1">
+                <!-- Angenommen / Verpasst -->
+                <UniformGrid Columns="2" Rows="1">
                     <Border Classes="card" Margin="0 0 8 0">
                         <StackPanel>
                             <TextBlock Text="Angenommene Anrufe" Classes="metricLabel" />
@@ -79,20 +79,12 @@
                             </TextBlock>
                         </StackPanel>
                     </Border>
-                    <Border Classes="card" Margin="0 0 8 0">
+                    <Border Classes="card">
                         <StackPanel>
                             <TextBlock Text="Verpasste Anrufe" Classes="metricLabel" />
                             <TextBlock Text="{Binding MissedCalls}" Classes="metricValue" Foreground="{StaticResource MissedBrush}" />
                             <TextBlock Foreground="{StaticResource MissedBrush}">
                                 <Run Text="{Binding MissedPercent}" /><Run Text=" %" />
-                            </TextBlock>
-                        </StackPanel>
-                    </Border>
-                    <Border Classes="card">
-                        <StackPanel>
-                            <TextBlock Text="Ø Annahmequote" Classes="metricLabel" />
-                            <TextBlock Classes="metricValue">
-                                <Run Text="{Binding AverageAnswerRatePercent}" /><Run Text=" %" />
                             </TextBlock>
                         </StackPanel>
                     </Border>
@@ -183,17 +175,6 @@
                                 </StackPanel>
                             </Border>
                         </UniformGrid>
-
-                        <Grid ColumnDefinitions="1*,1*">
-                            <StackPanel Grid.Column="0" Margin="0 0 8 0">
-                                <TextBlock Text="Gesamtanrufe im Vergleich" FontWeight="SemiBold" Margin="0 0 0 4" />
-                                <lvc:CartesianChart Series="{Binding ComparisonTotalsSeries}" Height="200" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="Verlauf im Vergleich" FontWeight="SemiBold" Margin="0 0 0 4" />
-                                <lvc:CartesianChart Series="{Binding ComparisonTrendSeries}" XAxes="{Binding TrendXAxes}" Height="200" />
-                            </StackPanel>
-                        </Grid>
                     </StackPanel>
                 </Border>
 

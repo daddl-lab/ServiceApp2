@@ -73,12 +73,13 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [ObservableProperty]
     private string? _errorMessage;
 
-    // Kennzahlen (Gesamtstatistik über beide Servicenummern zusammen)
+    // Kennzahlen - folgen wie die Diagramme der aktuellen ChartViewMode (Summe,
+    // Servicenummer 1 oder 2 allein; bei "Beide einzeln" wird die Gesamtstatistik
+    // angezeigt, da einzelne Kennzahlenfelder keine zwei Werte gleichzeitig fassen).
     [ObservableProperty] private int _totalCalls;
     [ObservableProperty] private double _averageCallsPerDay;
     [ObservableProperty] private string _bestDayText = "–";
     [ObservableProperty] private string _worstDayText = "–";
-    [ObservableProperty] private double _averageAnswerRatePercent;
     [ObservableProperty] private int _answeredCalls;
     [ObservableProperty] private double _answeredPercent;
     [ObservableProperty] private int _missedCalls;
@@ -93,11 +94,10 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [ObservableProperty] private ISeries[] _firstAnswerPieSeries = Array.Empty<ISeries>();
     [ObservableProperty] private ISeries[] _secondAnswerPieSeries = Array.Empty<ISeries>();
 
-    // Vergleich beider Servicenummern
+    // Vergleich beider Servicenummern (Textkarten, unabhängig von ChartViewMode -
+    // zeigen immer beide Nummern nebeneinander)
     [ObservableProperty] private ServiceNumberSummary _firstSummary = ServiceNumberSummary.Empty("Servicenummer 1");
     [ObservableProperty] private ServiceNumberSummary _secondSummary = ServiceNumberSummary.Empty("Servicenummer 2");
-    [ObservableProperty] private ISeries[] _comparisonTotalsSeries = Array.Empty<ISeries>();
-    [ObservableProperty] private ISeries[] _comparisonTrendSeries = Array.Empty<ISeries>();
 
     public DashboardViewModel(
         ISettingsService settingsService,
@@ -215,35 +215,35 @@ public sealed partial class DashboardViewModel : ViewModelBase
             ? FrequencyChartMode.Line
             : FrequencyChartMode.Bar;
 
-        UpdateChartSeries();
+        UpdateDisplayedStatistics();
     }
 
     [RelayCommand]
     private void SelectCombinedChartView()
     {
         ChartViewMode = ChartViewMode.Combined;
-        UpdateChartSeries();
+        UpdateDisplayedStatistics();
     }
 
     [RelayCommand]
     private void SelectSeparateChartView()
     {
         ChartViewMode = ChartViewMode.Separate;
-        UpdateChartSeries();
+        UpdateDisplayedStatistics();
     }
 
     [RelayCommand]
     private void SelectFirstOnlyChartView()
     {
         ChartViewMode = ChartViewMode.FirstOnly;
-        UpdateChartSeries();
+        UpdateDisplayedStatistics();
     }
 
     [RelayCommand]
     private void SelectSecondOnlyChartView()
     {
         ChartViewMode = ChartViewMode.SecondOnly;
-        UpdateChartSeries();
+        UpdateDisplayedStatistics();
     }
 
     /// <summary>
@@ -283,45 +283,45 @@ public sealed partial class DashboardViewModel : ViewModelBase
         _secondStats = secondStats;
         _combinedStats = combined;
 
-        TotalCalls = combined.TotalCalls;
-        AverageCallsPerDay = Math.Round(combined.AverageCallsPerDay, 1);
-        AverageAnswerRatePercent = Math.Round(combined.AverageAnswerRatePercent, 1);
-        AnsweredCalls = combined.AnsweredCalls;
-        AnsweredPercent = Math.Round(combined.AnsweredPercent, 1);
-        MissedCalls = combined.MissedCalls;
-        MissedPercent = Math.Round(combined.MissedPercent, 1);
-        BestDayText = combined.BestDay is null ? "–" : $"{combined.BestDay.Date:dd.MM.yyyy} ({combined.BestDay.TotalCalls} Anrufe)";
-        WorstDayText = combined.WorstDay is null ? "–" : $"{combined.WorstDay.Date:dd.MM.yyyy} ({combined.WorstDay.TotalCalls} Anrufe)";
-
         FirstSummary = new ServiceNumberSummary(firstStats.ServiceNumberName, firstStats.TotalCalls, firstStats.AnsweredCalls, firstStats.MissedCalls, Math.Round(firstStats.AnsweredPercent, 1));
         SecondSummary = new ServiceNumberSummary(secondStats.ServiceNumberName, secondStats.TotalCalls, secondStats.AnsweredCalls, secondStats.MissedCalls, Math.Round(secondStats.AnsweredPercent, 1));
 
-        ComparisonTotalsSeries = ChartFactory.CreateComparisonColumnSeries(
-            firstStats.ServiceNumberName, firstStats.TotalCalls,
-            secondStats.ServiceNumberName, secondStats.TotalCalls,
-            "Gesamtanrufe");
-
-        ComparisonTrendSeries = ChartFactory.CreateComparisonTrendSeries(
-            firstStats.ServiceNumberName, firstStats.DailyCounts,
-            secondStats.ServiceNumberName, secondStats.DailyCounts);
-
-        UpdateChartSeries();
+        UpdateDisplayedStatistics();
     }
 
     /// <summary>
-    /// Baut die Serien der drei Hauptdiagramme (Zeitlicher Verlauf, Häufigkeit,
-    /// Angenommen/Verpasst) anhand der zwischengespeicherten Statistiken und der
-    /// aktuell gewählten <see cref="ChartViewMode"/> neu auf. Wird sowohl nach einer
-    /// vollständigen Neuberechnung als auch bei einem reinen Anzeige-Wechsel
-    /// (Auswahl-Buttons, Balken/Linie-Umschalter) aufgerufen, ohne dass dafür die
-    /// zugrunde liegenden Kennzahlen neu berechnet werden müssen.
+    /// Baut die Kennzahlen-Felder und die Serien der drei Hauptdiagramme (Zeitlicher
+    /// Verlauf, Häufigkeit, Angenommen/Verpasst) anhand der zwischengespeicherten
+    /// Statistiken und der aktuell gewählten <see cref="ChartViewMode"/> neu auf. Wird
+    /// sowohl nach einer vollständigen Neuberechnung als auch bei einem reinen
+    /// Anzeige-Wechsel (Auswahl-Buttons, Balken/Linie-Umschalter) aufgerufen, ohne
+    /// dass dafür die zugrunde liegenden Kennzahlen neu berechnet werden müssen.
     /// </summary>
-    private void UpdateChartSeries()
+    private void UpdateDisplayedStatistics()
     {
         if (_firstStats is null || _secondStats is null || _combinedStats is null)
         {
             return;
         }
+
+        // Bei "Beide einzeln" gibt es keine sinnvolle einzelne Kennzahl - die
+        // Kennzahlen-Karten zeigen dann weiterhin die Gesamtstatistik, während die
+        // Diagramme beide Nummern getrennt darstellen.
+        var kpiStats = ChartViewMode switch
+        {
+            ChartViewMode.FirstOnly => _firstStats,
+            ChartViewMode.SecondOnly => _secondStats,
+            _ => _combinedStats
+        };
+
+        TotalCalls = kpiStats.TotalCalls;
+        AverageCallsPerDay = Math.Round(kpiStats.AverageCallsPerDay, 1);
+        AnsweredCalls = kpiStats.AnsweredCalls;
+        AnsweredPercent = Math.Round(kpiStats.AnsweredPercent, 1);
+        MissedCalls = kpiStats.MissedCalls;
+        MissedPercent = Math.Round(kpiStats.MissedPercent, 1);
+        BestDayText = kpiStats.BestDay is null ? "–" : $"{kpiStats.BestDay.Date:dd.MM.yyyy} ({kpiStats.BestDay.TotalCalls} Anrufe)";
+        WorstDayText = kpiStats.WorstDay is null ? "–" : $"{kpiStats.WorstDay.Date:dd.MM.yyyy} ({kpiStats.WorstDay.TotalCalls} Anrufe)";
 
         TrendXAxes = ChartFactory.CreateDailyTrendXAxes(_combinedStats.DailyCounts);
         FrequencyXAxes = ChartFactory.CreateHourlyXAxes();

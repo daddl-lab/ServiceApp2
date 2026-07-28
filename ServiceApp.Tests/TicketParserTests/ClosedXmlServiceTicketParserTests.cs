@@ -82,6 +82,46 @@ public sealed class ClosedXmlServiceTicketParserTests : IDisposable
     }
 
     [Fact]
+    public void Parse_WorkbookWithDetailColumns_ExtractsFieldsForDrillDown()
+    {
+        var filePath = Path.Combine(_tempDirectory, "tickets_full.xlsx");
+        TestExcelBuilder.CreateFullTicketWorkbook(filePath, new[]
+        {
+            (TicketNumber: 2001, CreatedAt: new DateTime(2026, 4, 1), Cause: (string?)"Elektrik", Type: (string?)"Störung",
+                AddressLine: (string?)"Musterstraße 1, 12345 Musterstadt", ErrorLocation: (string?)"Keller",
+                ErrorFix: (string?)"Sicherung getauscht", InternalStatus: (string?)"Erledigt", Responsible: (string?)"Max Mustermann")
+        });
+
+        var result = _parser.Parse(filePath);
+
+        var ticket = Assert.Single(result);
+        Assert.Equal("Musterstraße 1, 12345 Musterstadt", ticket.AddressLine);
+        Assert.Equal("Keller", ticket.ErrorLocation);
+        Assert.Equal("Sicherung getauscht", ticket.ErrorFix);
+        Assert.Equal("Erledigt", ticket.InternalStatus);
+        Assert.Equal("Max Mustermann", ticket.Responsible);
+    }
+
+    [Fact]
+    public void Parse_WorkbookWithoutDetailColumns_LeavesDetailFieldsNull()
+    {
+        var filePath = Path.Combine(_tempDirectory, "tickets_no_details.xlsx");
+        TestExcelBuilder.CreateTicketWorkbook(filePath, new[]
+        {
+            (TicketNumber: 1, CreatedAt: new DateTime(2026, 1, 1), Cause: (string?)"Elektrik", Type: (string?)"Störung")
+        });
+
+        var result = _parser.Parse(filePath);
+
+        var ticket = Assert.Single(result);
+        Assert.Null(ticket.AddressLine);
+        Assert.Null(ticket.ErrorLocation);
+        Assert.Null(ticket.ErrorFix);
+        Assert.Null(ticket.InternalStatus);
+        Assert.Null(ticket.Responsible);
+    }
+
+    [Fact]
     public void Parse_FileDoesNotExist_ThrowsTicketFileNotFoundException()
     {
         var filePath = Path.Combine(_tempDirectory, "missing.xlsx");

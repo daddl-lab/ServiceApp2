@@ -36,6 +36,13 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
 
     private IReadOnlyList<ServiceTicket> _tickets = Array.Empty<ServiceTicket>();
 
+    /// <summary>
+    /// Fehlerursachen-Aufschlüsselung der zuletzt berechneten Statistik, benötigt um
+    /// beim Klick auf ein Kuchenstück (<see cref="ShowDrillDown"/>) die zugehörigen
+    /// Tickets ohne erneute Neuberechnung nachzuschlagen.
+    /// </summary>
+    private IReadOnlyList<TicketCauseCount> _causeBreakdown = Array.Empty<TicketCauseCount>();
+
     [ObservableProperty]
     private DateRangePreset _selectedPreset = DateRangePreset.ThisMonth;
 
@@ -66,6 +73,16 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     [ObservableProperty] private ObservableCollection<TypeFilterOption> _typeOptions = new();
 
     [ObservableProperty] private string _typeFilterSummary = "Alle Typen";
+
+    /// <summary>
+    /// Drill-Down-Tabelle der Tickets einer beim Klick im Fehlerursachen-Kuchendiagramm
+    /// ausgewählten Ursache (siehe <see cref="ShowDrillDown"/>).
+    /// </summary>
+    [ObservableProperty] private ObservableCollection<ServiceTicket> _drillDownTickets = new();
+
+    [ObservableProperty] private bool _isDrillDownVisible;
+
+    [ObservableProperty] private string _drillDownTitle = string.Empty;
 
     public TicketDashboardViewModel(
         ISettingsService settingsService,
@@ -260,5 +277,37 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
         TimeSeries = TicketChartFactory.CreateTimeSeriesSeries(stats.TimeSeries);
         TimeSeriesXAxes = TicketChartFactory.CreateTimeSeriesXAxes(stats.TimeSeries);
         CauseBreakdownSeries = TicketChartFactory.CreateCauseBreakdownPieSeries(stats.CauseBreakdown);
+        _causeBreakdown = stats.CauseBreakdown;
+
+        // Ein Zeitraum- oder Filterwechsel kann die zuvor angeklickte Ursache aus dem
+        // Diagramm entfernen (z. B. keine Tickets mehr in diesem Zeitraum) - die
+        // geöffnete Tabelle würde dann veraltete Daten zeigen und wird deshalb
+        // geschlossen.
+        CloseDrillDown();
+    }
+
+    /// <summary>
+    /// Öffnet die Drill-Down-Tabelle für die angeklickte Fehlerursache (Name der
+    /// <see cref="LiveChartsCore.SkiaSharpView.PieSeries{TModel}"/>, siehe
+    /// <see cref="Charts.TicketChartFactory.CreateCauseBreakdownPieSeries"/>). Wird vom
+    /// View-Code-Behind aus dem PointerDown-Event des Kuchendiagramms aufgerufen.
+    /// </summary>
+    public void ShowDrillDown(string causeName)
+    {
+        var match = _causeBreakdown.FirstOrDefault(c => c.Cause == causeName);
+        if (match is null)
+        {
+            return;
+        }
+
+        DrillDownTickets = new ObservableCollection<ServiceTicket>(match.Tickets);
+        DrillDownTitle = $"{match.Cause} ({match.Count} Tickets)";
+        IsDrillDownVisible = true;
+    }
+
+    [RelayCommand]
+    private void CloseDrillDown()
+    {
+        IsDrillDownVisible = false;
     }
 }

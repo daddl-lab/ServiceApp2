@@ -9,4 +9,8 @@ namespace ServiceApp.Core.Models;
 /// </summary>
 /// <param name="Cause">Bezeichnung der Fehlerursache (oder "Sonstige"/"Nicht angegeben").</param>
 /// <param name="Count">Anzahl der Tickets mit dieser Ursache.</param>
-public sealed record TicketCauseCount(string Cause, int Count);
+/// <param name="Tickets">
+/// Die zu diesem Ursachen-Eintrag gehörenden Tickets, für die Drill-Down-Tabelle beim
+/// Anklicken eines Kuchenstücks im Ticket-Dashboard.
+/// </param>
+public sealed record TicketCauseCount(string Cause, int Count, IReadOnlyList<ServiceTicket> Tickets);

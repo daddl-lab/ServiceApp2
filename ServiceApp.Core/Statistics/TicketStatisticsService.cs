@@ -111,7 +111,7 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
     {
         var grouped = tickets
             .GroupBy(t => string.IsNullOrWhiteSpace(t.Cause) ? UnspecifiedCauseLabel : t.Cause.Trim())
-            .Select(g => new TicketCauseCount(g.Key, g.Count()))
+            .Select(g => new TicketCauseCount(g.Key, g.Count(), g.ToList()))
             .OrderByDescending(c => c.Count)
             .ToList();
 
@@ -121,8 +121,9 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
         }
 
         var top = grouped.Take(MaxCauseSlices - 1).ToList();
-        var otherCount = grouped.Skip(MaxCauseSlices - 1).Sum(c => c.Count);
-        top.Add(new TicketCauseCount(OtherCauseLabel, otherCount));
+        var tail = grouped.Skip(MaxCauseSlices - 1).ToList();
+        var otherTickets = tail.SelectMany(c => c.Tickets).ToList();
+        top.Add(new TicketCauseCount(OtherCauseLabel, otherTickets.Count, otherTickets));
         return top;
     }
 }

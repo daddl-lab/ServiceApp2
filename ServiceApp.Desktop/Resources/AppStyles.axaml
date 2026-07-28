@@ -25,4 +25,9 @@
         <Setter Property="Margin" Value="0 0 0 8" />
     </Style>
 
+    <Style Selector="TextBlock.hint">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Opacity" Value="0.6" />
+    </Style>
+
 </Styles>

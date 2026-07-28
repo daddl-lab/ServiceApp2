@@ -73,13 +73,41 @@
                              Einträgen würde eine untenliegende Legende in einem Diagramm
                              fester Höhe den für den Kreis selbst verfügbaren Platz auf
                              nahezu Null verdrängen. -->
-                        <lvc:PieChart Series="{Binding CauseBreakdownSeries}" Height="420"
+                        <lvc:PieChart x:Name="CauseBreakdownPieChart" Series="{Binding CauseBreakdownSeries}" Height="420"
                                       InitialRotation="0" MaxAngle="360" LegendPosition="Right" />
+                        <TextBlock Text="Klick auf ein Kuchenstück zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
                     </StackPanel>
                 </Border>
 
             </StackPanel>
         </ScrollViewer>
+
+        <!-- Drill-Down: Tabelle der Tickets einer angeklickten Fehlerursache, als
+             Overlay über dem gesamten Dashboard eingeblendet. -->
+        <Border Grid.Row="0" Grid.RowSpan="3" Background="#AA000000"
+                IsVisible="{Binding IsDrillDownVisible}">
+            <Border Classes="card" Margin="32" MaxWidth="1400" MaxHeight="700" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid RowDefinitions="Auto,*" MinWidth="900" Height="650">
+                    <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0 0 0 8">
+                        <TextBlock Grid.Column="0" Text="{Binding DrillDownTitle}" Classes="sectionTitle" />
+                        <Button Grid.Column="1" Content="Schließen" Command="{Binding CloseDrillDownCommand}" />
+                    </Grid>
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding DrillDownTickets}"
+                              AutoGenerateColumns="False" IsReadOnly="True"
+                              GridLinesVisibility="Horizontal" HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Adresszeile" Binding="{Binding AddressLine}" Width="2*" />
+                            <DataGridTextColumn Header="Typ" Binding="{Binding Type}" Width="*" />
+                            <DataGridTextColumn Header="Fehlercode Ort" Binding="{Binding ErrorLocation}" Width="*" />
+                            <DataGridTextColumn Header="Fehlercode Ursache" Binding="{Binding Cause}" Width="1.5*" />
+                            <DataGridTextColumn Header="Fehlercode Behebung" Binding="{Binding ErrorFix}" Width="1.5*" />
+                            <DataGridTextColumn Header="Interner Status" Binding="{Binding InternalStatus}" Width="*" />
+                            <DataGridTextColumn Header="Verantwortlich" Binding="{Binding Responsible}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+        </Border>
     </Grid>
 
 </UserControl>

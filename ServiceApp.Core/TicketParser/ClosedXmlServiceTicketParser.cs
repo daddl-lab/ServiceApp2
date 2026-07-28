@@ -19,6 +19,11 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
     private const string CreatedAtColumn = "Anlagedatum";
     private const string CauseColumn = "Fehlercode Ursache";
     private const string TypeColumn = "Typ";
+    private const string AddressLineColumn = "Adresszeile 1";
+    private const string ErrorLocationColumn = "Fehlercode Ort";
+    private const string ErrorFixColumn = "Fehlercode Behebung";
+    private const string InternalStatusColumn = "Interner Status";
+    private const string ResponsibleColumn = "Verantwortlich";
 
     private readonly ILogger<ClosedXmlServiceTicketParser> _logger;
 
@@ -86,6 +91,13 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
             // "Typ" ist bewusst optional: Dateien ohne diese Spalte sollen weiterhin
             // importierbar sein, der Typ-Filter zeigt dann schlicht keine Optionen an.
             var typeColumnIndex = columnIndexes.GetValueOrDefault(TypeColumn, -1);
+            // Die folgenden Spalten werden nur für die Drill-Down-Tabelle der
+            // Fehlerursachen benötigt und sind daher ebenfalls optional.
+            var addressLineColumnIndex = columnIndexes.GetValueOrDefault(AddressLineColumn, -1);
+            var errorLocationColumnIndex = columnIndexes.GetValueOrDefault(ErrorLocationColumn, -1);
+            var errorFixColumnIndex = columnIndexes.GetValueOrDefault(ErrorFixColumn, -1);
+            var internalStatusColumnIndex = columnIndexes.GetValueOrDefault(InternalStatusColumn, -1);
+            var responsibleColumnIndex = columnIndexes.GetValueOrDefault(ResponsibleColumn, -1);
 
             var tickets = new List<ServiceTicket>();
             var skippedRows = 0;
@@ -116,7 +128,22 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
                     type = string.IsNullOrWhiteSpace(typeValue) ? null : typeValue;
                 }
 
-                tickets.Add(new ServiceTicket(ticketNumber, createdAt, string.IsNullOrWhiteSpace(cause) ? null : cause, type));
+                var addressLine = ReadOptionalString(row, addressLineColumnIndex);
+                var errorLocation = ReadOptionalString(row, errorLocationColumnIndex);
+                var errorFix = ReadOptionalString(row, errorFixColumnIndex);
+                var internalStatus = ReadOptionalString(row, internalStatusColumnIndex);
+                var responsible = ReadOptionalString(row, responsibleColumnIndex);
+
+                tickets.Add(new ServiceTicket(
+                    ticketNumber,
+                    createdAt,
+                    string.IsNullOrWhiteSpace(cause) ? null : cause,
+                    type,
+                    addressLine,
+                    errorLocation,
+                    errorFix,
+                    internalStatus,
+                    responsible));
             }
 
             _logger.LogInformation(
@@ -125,6 +152,21 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
 
             return tickets;
         }
+    }
+
+    /// <summary>
+    /// Liest eine optionale Textspalte; liefert <c>null</c>, wenn die Spalte in der
+    /// Datei fehlt (columnIndex &lt;= 0) oder die Zelle leer ist.
+    /// </summary>
+    private static string? ReadOptionalString(IXLRow row, int columnIndex)
+    {
+        if (columnIndex <= 0)
+        {
+            return null;
+        }
+
+        var value = row.Cell(columnIndex).GetString().Trim();
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     /// <summary>Bildet Spaltenbeschriftungen der Kopfzeile auf 1-basierte Spaltennummern ab.</summary>

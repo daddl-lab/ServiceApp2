@@ -95,6 +95,27 @@ public sealed class TicketStatisticsServiceTests
         Assert.Equal(9, stats.CauseBreakdown.Count);
         Assert.Equal("Sonstige", stats.CauseBreakdown.Last().Cause);
         Assert.Equal(tickets.Count, stats.CauseBreakdown.Sum(c => c.Count));
+        Assert.Equal(tickets.Count, stats.CauseBreakdown.Sum(c => c.Tickets.Count));
+        Assert.Equal(stats.CauseBreakdown.Last().Count, stats.CauseBreakdown.Last().Tickets.Count);
+    }
+
+    [Fact]
+    public void Compute_CauseBreakdown_CarriesMatchingTicketsForDrillDown()
+    {
+        var elektrik1 = Ticket(new DateTime(2026, 3, 1), "Elektrik", ticketNumber: 101);
+        var elektrik2 = Ticket(new DateTime(2026, 3, 2), "Elektrik", ticketNumber: 102);
+        var mechanik = Ticket(new DateTime(2026, 3, 3), "Mechanik", ticketNumber: 103);
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(new[] { elektrik1, elektrik2, mechanik }, range);
+
+        var elektrikGroup = stats.CauseBreakdown.Single(c => c.Cause == "Elektrik");
+        Assert.Equal(2, elektrikGroup.Tickets.Count);
+        Assert.Contains(elektrikGroup.Tickets, t => t.TicketNumber == 101);
+        Assert.Contains(elektrikGroup.Tickets, t => t.TicketNumber == 102);
+
+        var mechanikGroup = stats.CauseBreakdown.Single(c => c.Cause == "Mechanik");
+        Assert.Equal(new[] { 103 }, mechanikGroup.Tickets.Select(t => t.TicketNumber));
     }
 
     [Fact]

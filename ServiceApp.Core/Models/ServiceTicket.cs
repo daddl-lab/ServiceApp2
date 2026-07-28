@@ -15,4 +15,18 @@ namespace ServiceApp.Core.Models;
 /// Inhalt der Spalte "Typ" (z. B. "Störung", "Anforderung Mechaniker"). <c>null</c>,
 /// wenn die Zelle leer war oder die Spalte in der Datei nicht vorhanden ist.
 /// </param>
-public sealed record ServiceTicket(int TicketNumber, DateTime CreatedAt, string? Cause, string? Type);
+/// <param name="AddressLine">Inhalt der Spalte "Adresszeile 1".</param>
+/// <param name="ErrorLocation">Inhalt der Spalte "Fehlercode Ort".</param>
+/// <param name="ErrorFix">Inhalt der Spalte "Fehlercode Behebung".</param>
+/// <param name="InternalStatus">Inhalt der Spalte "Interner Status".</param>
+/// <param name="Responsible">Inhalt der Spalte "Verantwortlich".</param>
+public sealed record ServiceTicket(
+    int TicketNumber,
+    DateTime CreatedAt,
+    string? Cause,
+    string? Type,
+    string? AddressLine = null,
+    string? ErrorLocation = null,
+    string? ErrorFix = null,
+    string? InternalStatus = null,
+    string? Responsible = null);

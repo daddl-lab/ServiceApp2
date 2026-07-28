@@ -35,19 +35,16 @@ public static class TicketChartFactory
     private static readonly SKColor OtherCauseColor = new(0x75, 0x75, 0x75); // Grau, für "Sonstige"
     private const string OtherCauseLabel = "Sonstige";
 
-    /// <summary>Liniendiagramm der Ticketanzahl je Zeitpunkt (Tag oder Monat, siehe <see cref="TicketTimeSeriesPoint"/>).</summary>
+    /// <summary>Balkendiagramm der Ticketanzahl je Zeitpunkt (Tag oder Monat, siehe <see cref="TicketTimeSeriesPoint"/>).</summary>
     public static ISeries[] CreateTimeSeriesSeries(IReadOnlyList<TicketTimeSeriesPoint> timeSeries)
     {
         return new ISeries[]
         {
-            new LineSeries<int>
+            new ColumnSeries<int>
             {
                 Name = "Tickets",
                 Values = timeSeries.Select(p => p.Count).ToArray(),
-                Fill = null,
-                Stroke = new SolidColorPaint(TrendColor) { StrokeThickness = 2 },
-                GeometrySize = 4,
-                GeometryStroke = new SolidColorPaint(TrendColor)
+                Fill = new SolidColorPaint(TrendColor)
             }
         };
     }

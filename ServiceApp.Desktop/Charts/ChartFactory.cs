@@ -21,20 +21,21 @@ public static class ChartFactory
 
     /// <summary>
     /// Diagramm des zeitlichen Verlaufs: eine Linie mit der Gesamtanzahl der Anrufe je
-    /// Tag, ergänzt um zwei Balkenserien für angenommene und verpasste Anrufe je Tag,
-    /// damit neben dem reinen Anrufvolumen auch dessen Zusammensetzung sichtbar wird.
+    /// Tag, ergänzt um zwei gestapelte Balkenserien für angenommene und verpasste
+    /// Anrufe je Tag (übereinander statt nebeneinander), damit die Balkenhöhe in Summe
+    /// der Gesamtanzahl entspricht und die Zusammensetzung trotzdem sichtbar bleibt.
     /// </summary>
     public static ISeries[] CreateDailyTrendSeries(IReadOnlyList<DailyCallCount> dailyCounts)
     {
         return new ISeries[]
         {
-            new ColumnSeries<int>
+            new StackedColumnSeries<int>
             {
                 Name = "Angenommen",
                 Values = dailyCounts.Select(d => d.AnsweredCalls).ToArray(),
                 Fill = new SolidColorPaint(AnsweredColor)
             },
-            new ColumnSeries<int>
+            new StackedColumnSeries<int>
             {
                 Name = "Verpasst",
                 Values = dailyCounts.Select(d => d.MissedCalls).ToArray(),

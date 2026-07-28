@@ -7,20 +7,40 @@
 
     <Grid RowDefinitions="Auto,Auto,*">
 
-        <!-- Zeitraum-Filter -->
+        <!-- Zeitraum- und Typ-Filter -->
         <Border Grid.Row="0" Padding="16 12" Background="{DynamicResource SystemAltHighColor}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
-                <Button Content="Tag" Command="{Binding SelectTodayCommand}" />
-                <Button Content="Woche" Command="{Binding SelectThisWeekCommand}" />
-                <Button Content="Monat" Command="{Binding SelectThisMonthCommand}" />
-                <Button Content="Jahr" Command="{Binding SelectThisYearCommand}" />
-                <TextBlock Text="Benutzerdefiniert:" VerticalAlignment="Center" Margin="16 0 0 0" />
-                <CalendarDatePicker SelectedDate="{Binding CustomRangeStart}" Width="140" />
-                <TextBlock Text="bis" VerticalAlignment="Center" />
-                <CalendarDatePicker SelectedDate="{Binding CustomRangeEnd}" Width="140" />
-                <Button Content="Anwenden" Command="{Binding ApplyCustomRangeCommand}" />
-                <Button Content="Aktualisieren" Command="{Binding ReloadCommand}" Margin="16 0 0 0" />
-                <TextBlock Text="Lädt…" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="8 0 0 0" />
+            <StackPanel Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Content="Tag" Command="{Binding SelectTodayCommand}" />
+                    <Button Content="Woche" Command="{Binding SelectThisWeekCommand}" />
+                    <Button Content="Monat" Command="{Binding SelectThisMonthCommand}" />
+                    <Button Content="Jahr" Command="{Binding SelectThisYearCommand}" />
+                    <TextBlock Text="Benutzerdefiniert:" VerticalAlignment="Center" Margin="16 0 0 0" />
+                    <CalendarDatePicker SelectedDate="{Binding CustomRangeStart}" Width="140" />
+                    <TextBlock Text="bis" VerticalAlignment="Center" />
+                    <CalendarDatePicker SelectedDate="{Binding CustomRangeEnd}" Width="140" />
+                    <Button Content="Anwenden" Command="{Binding ApplyCustomRangeCommand}" />
+                    <Button Content="Aktualisieren" Command="{Binding ReloadCommand}" Margin="16 0 0 0" />
+                    <TextBlock Text="Lädt…" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="8 0 0 0" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="Typ:" VerticalAlignment="Center" />
+                    <Button Content="{Binding TypeFilterSummary}">
+                        <Button.Flyout>
+                            <Flyout>
+                                <ScrollViewer MaxHeight="320">
+                                    <ItemsControl ItemsSource="{Binding TypeOptions}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:TypeFilterOption">
+                                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </Border>
 

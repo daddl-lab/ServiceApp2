@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using LiveChartsCore;
@@ -55,6 +57,16 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     [ObservableProperty] private Axis[] _timeSeriesXAxes = { new Axis() };
     [ObservableProperty] private ISeries[] _causeBreakdownSeries = Array.Empty<ISeries>();
 
+    /// <summary>
+    /// Mehrfachauswahl-Filter über die Excel-Spalte "Typ", gilt für beide Diagramme.
+    /// Die Auswahl wird bei jeder Änderung dauerhaft gespeichert (siehe
+    /// <see cref="PersistSelectedTypes"/>) und beim nächsten Programmstart wieder
+    /// geladen.
+    /// </summary>
+    [ObservableProperty] private ObservableCollection<TypeFilterOption> _typeOptions = new();
+
+    [ObservableProperty] private string _typeFilterSummary = "Alle Typen";
+
     public TicketDashboardViewModel(
         ISettingsService settingsService,
         ITicketRepository repository,
@@ -91,6 +103,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
             // dem Task.Run-Hintergrundthread heraus ausgelöst werden sollen.
             ErrorMessage = error;
 
+            RebuildTypeOptions(settings.TicketSelectedTypes);
             RecomputeStatistics();
         }
         finally
@@ -115,6 +128,70 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
             _logger.LogError(ex, "Servicetickets konnten nicht geladen werden.");
             return (Array.Empty<ServiceTicket>(), ex.Message);
         }
+    }
+
+    /// <summary>
+    /// Baut die Liste der Typ-Filter-Optionen aus den geladenen Tickets neu auf und
+    /// übernimmt dabei die zuletzt gespeicherte Auswahl. Eine leere gespeicherte
+    /// Auswahl (noch nie konfiguriert, oder der Benutzer hat bewusst alle Typen
+    /// ausgewählt) führt dazu, dass beim Aufbau alle Optionen angehakt werden.
+    /// </summary>
+    private void RebuildTypeOptions(IReadOnlyCollection<string> savedSelection)
+    {
+        var distinctTypes = _statisticsService.GetDistinctTypes(_tickets);
+        var options = distinctTypes
+            .Select(type => new TypeFilterOption(type, savedSelection.Count == 0 || savedSelection.Contains(type)))
+            .ToList();
+
+        foreach (var option in options)
+        {
+            option.PropertyChanged += OnTypeOptionChanged;
+        }
+
+        TypeOptions = new ObservableCollection<TypeFilterOption>(options);
+        UpdateTypeFilterSummary();
+    }
+
+    private void OnTypeOptionChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(TypeFilterOption.IsSelected))
+        {
+            return;
+        }
+
+        PersistSelectedTypes(GetEffectiveSelectedTypes());
+        UpdateTypeFilterSummary();
+        RecomputeStatistics();
+    }
+
+    /// <summary>
+    /// Liefert die aktuell angehakten Typen, normalisiert auf die im gesamten
+    /// Anwendung geltende Konvention "leere Liste = kein Filter, alle Typen": sind
+    /// entweder alle oder keine Optionen angehakt, wird eine leere Liste
+    /// zurückgegeben, statt die Namen einzeln aufzuzählen. Das hält die gespeicherte
+    /// Auswahl robust gegenüber neuen Typen, die später in der Exceldatei auftauchen.
+    /// </summary>
+    private List<string> GetEffectiveSelectedTypes()
+    {
+        var checkedNames = TypeOptions.Where(o => o.IsSelected).Select(o => o.Name).ToList();
+        var isUnfiltered = checkedNames.Count == 0 || checkedNames.Count == TypeOptions.Count;
+        return isUnfiltered ? new List<string>() : checkedNames;
+    }
+
+    private void UpdateTypeFilterSummary()
+    {
+        var effective = GetEffectiveSelectedTypes();
+        TypeFilterSummary = effective.Count == 0
+            ? "Alle Typen"
+            : $"{effective.Count} von {TypeOptions.Count} Typen";
+    }
+
+    /// <summary>Speichert die Typ-Auswahl dauerhaft, ohne die übrigen Einstellungen zu verändern.</summary>
+    private void PersistSelectedTypes(List<string> selection)
+    {
+        var settings = _settingsService.Load();
+        settings.TicketSelectedTypes = selection;
+        _settingsService.Save(settings);
     }
 
     [RelayCommand]
@@ -177,7 +254,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void RecomputeStatistics()
     {
         var range = BuildCurrentRange();
-        var stats = _statisticsService.Compute(_tickets, range);
+        var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes());
 
         TotalTickets = stats.TotalTickets;
         TimeSeries = TicketChartFactory.CreateTimeSeriesSeries(stats.TimeSeries);

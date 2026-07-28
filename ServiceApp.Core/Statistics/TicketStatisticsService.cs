@@ -24,11 +24,15 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
     private const string UnspecifiedCauseLabel = "Nicht angegeben";
     private const string OtherCauseLabel = "Sonstige";
 
+    /// <summary>Bezeichnung, unter der Tickets ohne Typ-Angabe im Filter geführt werden.</summary>
+    private const string UnspecifiedTypeLabel = "Nicht angegeben";
+
     /// <inheritdoc />
-    public TicketStatistics Compute(IReadOnlyList<ServiceTicket> tickets, DateRangeFilter range)
+    public TicketStatistics Compute(IReadOnlyList<ServiceTicket> tickets, DateRangeFilter range, IReadOnlyCollection<string>? selectedTypes = null)
     {
         var ticketsInRange = tickets
             .Where(t => range.Contains(DateOnly.FromDateTime(t.CreatedAt)))
+            .Where(t => selectedTypes is null || selectedTypes.Count == 0 || selectedTypes.Contains(NormalizeType(t.Type)))
             .ToList();
 
         return new TicketStatistics
@@ -38,6 +42,18 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
             CauseBreakdown = BuildCauseBreakdown(ticketsInRange)
         };
     }
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetDistinctTypes(IReadOnlyList<ServiceTicket> tickets)
+    {
+        return tickets
+            .Select(t => NormalizeType(t.Type))
+            .Distinct()
+            .OrderBy(t => t, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+    }
+
+    private static string NormalizeType(string? type) => string.IsNullOrWhiteSpace(type) ? UnspecifiedTypeLabel : type.Trim();
 
     private static List<TicketTimeSeriesPoint> BuildTimeSeries(IReadOnlyList<ServiceTicket> tickets, DateRangeFilter range)
     {

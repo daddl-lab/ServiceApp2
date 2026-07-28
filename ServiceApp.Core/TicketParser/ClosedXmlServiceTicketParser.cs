@@ -8,16 +8,17 @@ namespace ServiceApp.Core.TicketParser;
 /// <summary>
 /// Standard-Implementierung von <see cref="IServiceTicketParser"/> auf Basis der
 /// ClosedXML-Bibliothek. Findet die benötigten Spalten anhand ihrer Kopfzeilen-
-/// Beschriftung ("Anlagedatum", "Fehlercode Ursache", optional "Ticketnummer"),
-/// unabhängig von deren Reihenfolge oder zusätzlichen, nicht ausgewerteten Spalten -
-/// das macht den Import robust gegenüber Tabellen, die "ähnlich" der Beispieldatei,
-/// aber nicht spaltengleich sind.
+/// Beschriftung ("Anlagedatum", "Fehlercode Ursache", optional "Ticketnummer" und
+/// "Typ"), unabhängig von deren Reihenfolge oder zusätzlichen, nicht ausgewerteten
+/// Spalten - das macht den Import robust gegenüber Tabellen, die "ähnlich" der
+/// Beispieldatei, aber nicht spaltengleich sind.
 /// </summary>
 public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
 {
     private const string TicketNumberColumn = "Ticketnummer";
     private const string CreatedAtColumn = "Anlagedatum";
     private const string CauseColumn = "Fehlercode Ursache";
+    private const string TypeColumn = "Typ";
 
     private readonly ILogger<ClosedXmlServiceTicketParser> _logger;
 
@@ -82,6 +83,9 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
             var createdAtColumnIndex = columnIndexes[CreatedAtColumn];
             var causeColumnIndex = columnIndexes[CauseColumn];
             var ticketNumberColumnIndex = columnIndexes.GetValueOrDefault(TicketNumberColumn, -1);
+            // "Typ" ist bewusst optional: Dateien ohne diese Spalte sollen weiterhin
+            // importierbar sein, der Typ-Filter zeigt dann schlicht keine Optionen an.
+            var typeColumnIndex = columnIndexes.GetValueOrDefault(TypeColumn, -1);
 
             var tickets = new List<ServiceTicket>();
             var skippedRows = 0;
@@ -105,7 +109,14 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
                     row.Cell(ticketNumberColumnIndex).TryGetValue(out ticketNumber);
                 }
 
-                tickets.Add(new ServiceTicket(ticketNumber, createdAt, string.IsNullOrWhiteSpace(cause) ? null : cause));
+                string? type = null;
+                if (typeColumnIndex > 0)
+                {
+                    var typeValue = row.Cell(typeColumnIndex).GetString().Trim();
+                    type = string.IsNullOrWhiteSpace(typeValue) ? null : typeValue;
+                }
+
+                tickets.Add(new ServiceTicket(ticketNumber, createdAt, string.IsNullOrWhiteSpace(cause) ? null : cause, type));
             }
 
             _logger.LogInformation(

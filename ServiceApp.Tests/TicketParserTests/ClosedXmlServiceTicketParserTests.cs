@@ -32,16 +32,16 @@ public sealed class ClosedXmlServiceTicketParserTests : IDisposable
         var filePath = Path.Combine(_tempDirectory, "tickets.xlsx");
         var tickets = new[]
         {
-            (TicketNumber: 1001, CreatedAt: new DateTime(2026, 3, 1, 9, 0, 0), Cause: (string?)"Elektrik Bauteil Defekt"),
-            (TicketNumber: 1002, CreatedAt: new DateTime(2026, 3, 2, 14, 30, 0), Cause: (string?)"Mechanik Verschleiß")
+            (TicketNumber: 1001, CreatedAt: new DateTime(2026, 3, 1, 9, 0, 0), Cause: (string?)"Elektrik Bauteil Defekt", Type: (string?)"Störung"),
+            (TicketNumber: 1002, CreatedAt: new DateTime(2026, 3, 2, 14, 30, 0), Cause: (string?)"Mechanik Verschleiß", Type: (string?)"Anfrage")
         };
         TestExcelBuilder.CreateTicketWorkbook(filePath, tickets);
 
         var result = _parser.Parse(filePath);
 
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, t => t.TicketNumber == 1001 && t.Cause == "Elektrik Bauteil Defekt" && t.CreatedAt == new DateTime(2026, 3, 1, 9, 0, 0));
-        Assert.Contains(result, t => t.TicketNumber == 1002 && t.Cause == "Mechanik Verschleiß");
+        Assert.Contains(result, t => t.TicketNumber == 1001 && t.Cause == "Elektrik Bauteil Defekt" && t.Type == "Störung" && t.CreatedAt == new DateTime(2026, 3, 1, 9, 0, 0));
+        Assert.Contains(result, t => t.TicketNumber == 1002 && t.Cause == "Mechanik Verschleiß" && t.Type == "Anfrage");
     }
 
     [Fact]
@@ -50,24 +50,26 @@ public sealed class ClosedXmlServiceTicketParserTests : IDisposable
         var filePath = Path.Combine(_tempDirectory, "tickets.xlsx");
         TestExcelBuilder.CreateTicketWorkbook(filePath, new[]
         {
-            (TicketNumber: 1, CreatedAt: new DateTime(2026, 1, 1), Cause: (string?)null)
+            (TicketNumber: 1, CreatedAt: new DateTime(2026, 1, 1), Cause: (string?)null, Type: (string?)null)
         });
 
         var result = _parser.Parse(filePath);
 
-        Assert.Null(Assert.Single(result).Cause);
+        var ticket = Assert.Single(result);
+        Assert.Null(ticket.Cause);
+        Assert.Null(ticket.Type);
     }
 
     [Fact]
     public void Parse_ColumnOrderDiffersFromSample_StillFindsColumnsByHeaderName()
     {
         // TestExcelBuilder legt die Spalten bewusst in anderer Reihenfolge an als die
-        // Beispieldatei (Titel, Ticketnummer, Fehlercode Ursache, Anlagedatum) - der
-        // Parser muss trotzdem anhand der Kopfzeile die richtigen Spalten finden.
+        // Beispieldatei (Titel, Ticketnummer, Fehlercode Ursache, Anlagedatum, Typ) -
+        // der Parser muss trotzdem anhand der Kopfzeile die richtigen Spalten finden.
         var filePath = Path.Combine(_tempDirectory, "tickets.xlsx");
         TestExcelBuilder.CreateTicketWorkbook(filePath, new[]
         {
-            (TicketNumber: 42, CreatedAt: new DateTime(2026, 5, 5), Cause: (string?)"Kunde Wartung")
+            (TicketNumber: 42, CreatedAt: new DateTime(2026, 5, 5), Cause: (string?)"Kunde Wartung", Type: (string?)"Reklamation")
         });
 
         var result = _parser.Parse(filePath);
@@ -75,6 +77,7 @@ public sealed class ClosedXmlServiceTicketParserTests : IDisposable
         var ticket = Assert.Single(result);
         Assert.Equal(42, ticket.TicketNumber);
         Assert.Equal("Kunde Wartung", ticket.Cause);
+        Assert.Equal("Reklamation", ticket.Type);
         Assert.Equal(new DateTime(2026, 5, 5), ticket.CreatedAt);
     }
 

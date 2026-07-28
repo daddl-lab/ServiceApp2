@@ -8,8 +8,8 @@ public sealed class TicketStatisticsServiceTests
 {
     private readonly TicketStatisticsService _service = new();
 
-    private static ServiceTicket Ticket(DateTime createdAt, string? cause, int ticketNumber = 1)
-        => new(ticketNumber, createdAt, cause);
+    private static ServiceTicket Ticket(DateTime createdAt, string? cause, int ticketNumber = 1, string? type = null)
+        => new(ticketNumber, createdAt, cause, type);
 
     [Fact]
     public void Compute_TicketsWithinRange_CountsCorrectly()
@@ -108,5 +108,78 @@ public sealed class TicketStatisticsServiceTests
         Assert.Empty(stats.CauseBreakdown);
         Assert.Single(stats.TimeSeries);
         Assert.Equal(0, stats.TimeSeries[0].Count);
+    }
+
+    [Fact]
+    public void Compute_WithSelectedTypes_OnlyCountsMatchingTickets()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), "Elektrik", type: "Störung"),
+            Ticket(new DateTime(2026, 3, 2), "Mechanik", type: "Anfrage"),
+            Ticket(new DateTime(2026, 3, 3), "Elektrik", type: "Störung")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, new[] { "Störung" });
+
+        Assert.Equal(2, stats.TotalTickets);
+    }
+
+    [Fact]
+    public void Compute_EmptySelectedTypes_MeansNoFilter()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), "Elektrik", type: "Störung"),
+            Ticket(new DateTime(2026, 3, 2), "Mechanik", type: "Anfrage")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, Array.Empty<string>());
+
+        Assert.Equal(2, stats.TotalTickets);
+    }
+
+    [Fact]
+    public void Compute_NullSelectedTypes_MeansNoFilter()
+    {
+        var tickets = new[] { Ticket(new DateTime(2026, 3, 1), "Elektrik", type: "Störung") };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, selectedTypes: null);
+
+        Assert.Equal(1, stats.TotalTickets);
+    }
+
+    [Fact]
+    public void Compute_MissingType_GroupedAsNichtAngegebenForFiltering()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), "Elektrik", type: null),
+            Ticket(new DateTime(2026, 3, 2), "Mechanik", type: "Störung")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, new[] { "Nicht angegeben" });
+
+        Assert.Equal(1, stats.TotalTickets);
+    }
+
+    [Fact]
+    public void GetDistinctTypes_ReturnsSortedUniqueValuesWithNichtAngegebenForMissingType()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, type: "Störung"),
+            Ticket(new DateTime(2026, 3, 2), null, type: "Anfrage"),
+            Ticket(new DateTime(2026, 3, 3), null, type: "Störung"),
+            Ticket(new DateTime(2026, 3, 4), null, type: null)
+        };
+
+        var types = _service.GetDistinctTypes(tickets);
+
+        Assert.Equal(new[] { "Anfrage", "Nicht angegeben", "Störung" }, types);
     }
 }

@@ -9,11 +9,11 @@ namespace ServiceApp.Tests.TestData;
 public static class TestExcelBuilder
 {
     /// <summary>
-    /// Erzeugt eine Ticket-Tabelle mit den Spalten Ticketnummer, Anlagedatum und
+    /// Erzeugt eine Ticket-Tabelle mit den Spalten Ticketnummer, Anlagedatum, Typ und
     /// Fehlercode Ursache (in dieser Reihenfolge vertauscht mit einer zusätzlichen,
     /// nicht ausgewerteten Spalte, um die spaltennamenbasierte Erkennung zu testen).
     /// </summary>
-    public static void CreateTicketWorkbook(string filePath, IEnumerable<(int TicketNumber, DateTime CreatedAt, string? Cause)> tickets)
+    public static void CreateTicketWorkbook(string filePath, IEnumerable<(int TicketNumber, DateTime CreatedAt, string? Cause, string? Type)> tickets)
     {
         using var workbook = new XLWorkbook();
         var worksheet = workbook.Worksheets.Add("Procedure");
@@ -22,14 +22,16 @@ public static class TestExcelBuilder
         worksheet.Cell(1, 2).Value = "Ticketnummer";
         worksheet.Cell(1, 3).Value = "Fehlercode Ursache";
         worksheet.Cell(1, 4).Value = "Anlagedatum";
+        worksheet.Cell(1, 5).Value = "Typ";
 
         var row = 2;
-        foreach (var (ticketNumber, createdAt, cause) in tickets)
+        foreach (var (ticketNumber, createdAt, cause, type) in tickets)
         {
             worksheet.Cell(row, 1).Value = $"Ticket {ticketNumber}";
             worksheet.Cell(row, 2).Value = ticketNumber;
             worksheet.Cell(row, 3).Value = cause;
             worksheet.Cell(row, 4).Value = createdAt;
+            worksheet.Cell(row, 5).Value = type;
             row++;
         }
 

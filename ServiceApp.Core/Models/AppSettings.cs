@@ -23,4 +23,12 @@ public sealed class AppSettings
     /// noch nicht konfiguriert.
     /// </summary>
     public string TicketExcelFilePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Im Ticket-Dashboard ausgewählte Werte des Typ-Filters (Mehrfachauswahl,
+    /// Excel-Spalte "Typ"). Eine leere Liste bedeutet "kein Filter, alle Typen
+    /// anzeigen" - sowohl beim allerersten Start (noch nie konfiguriert) als auch,
+    /// wenn der Benutzer bewusst alle Typen ausgewählt hat.
+    /// </summary>
+    public List<string> TicketSelectedTypes { get; set; } = new();
 }

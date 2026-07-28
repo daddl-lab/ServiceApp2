@@ -1,0 +1,65 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ServiceApp.Desktop.ViewModels"
+             xmlns:lvc="using:LiveChartsCore.SkiaSharpView.Avalonia"
+             x:Class="ServiceApp.Desktop.Views.TicketDashboardView"
+             x:DataType="vm:TicketDashboardViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Zeitraum-Filter -->
+        <Border Grid.Row="0" Padding="16 12" Background="{DynamicResource SystemAltHighColor}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Tag" Command="{Binding SelectTodayCommand}" />
+                <Button Content="Woche" Command="{Binding SelectThisWeekCommand}" />
+                <Button Content="Monat" Command="{Binding SelectThisMonthCommand}" />
+                <Button Content="Jahr" Command="{Binding SelectThisYearCommand}" />
+                <TextBlock Text="Benutzerdefiniert:" VerticalAlignment="Center" Margin="16 0 0 0" />
+                <CalendarDatePicker SelectedDate="{Binding CustomRangeStart}" Width="140" />
+                <TextBlock Text="bis" VerticalAlignment="Center" />
+                <CalendarDatePicker SelectedDate="{Binding CustomRangeEnd}" Width="140" />
+                <Button Content="Anwenden" Command="{Binding ApplyCustomRangeCommand}" />
+                <Button Content="Aktualisieren" Command="{Binding ReloadCommand}" Margin="16 0 0 0" />
+                <TextBlock Text="Lädt…" IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="8 0 0 0" />
+            </StackPanel>
+        </Border>
+
+        <!-- Fehler-/Hinweisbanner -->
+        <Border Grid.Row="1" Padding="16 8" Background="#33C62828" IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource MissedBrush}" TextWrapping="Wrap" />
+        </Border>
+
+        <ScrollViewer Grid.Row="2" Padding="16">
+            <StackPanel Spacing="16">
+
+                <Border Classes="card" MaxWidth="260" HorizontalAlignment="Left">
+                    <StackPanel>
+                        <TextBlock Text="Gesamtanzahl Tickets" Classes="metricLabel" />
+                        <TextBlock Text="{Binding TotalTickets}" Classes="metricValue" Foreground="{StaticResource TotalBrush}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Zeitlicher Verlauf (Anlagedatum)" Classes="sectionTitle" />
+                        <lvc:CartesianChart Series="{Binding TimeSeries}" XAxes="{Binding TimeSeriesXAxes}" Height="280" />
+                    </StackPanel>
+                </Border>
+
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Fehlerursachen" Classes="sectionTitle" />
+                        <!-- Legende rechts statt unten: bei bis zu neun (teils zweizeiligen)
+                             Einträgen würde eine untenliegende Legende in einem Diagramm
+                             fester Höhe den für den Kreis selbst verfügbaren Platz auf
+                             nahezu Null verdrängen. -->
+                        <lvc:PieChart Series="{Binding CauseBreakdownSeries}" Height="420"
+                                      InitialRotation="0" MaxAngle="360" LegendPosition="Right" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+
+</UserControl>

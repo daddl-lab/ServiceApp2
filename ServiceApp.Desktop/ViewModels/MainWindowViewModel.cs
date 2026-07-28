@@ -5,8 +5,9 @@ namespace ServiceApp.Desktop.ViewModels;
 
 /// <summary>
 /// ViewModel des Hauptfensters. Verantwortlich einzig für die Navigation zwischen den
-/// beiden Hauptbereichen der Anwendung (Dashboard und Einstellungen) - die eigentliche
-/// Fachlogik jedes Bereichs liegt in <see cref="DashboardViewModel"/> bzw.
+/// Hauptbereichen der Anwendung (Telefonberichts-Dashboard, Ticket-Dashboard und
+/// Einstellungen) - die eigentliche Fachlogik jedes Bereichs liegt in
+/// <see cref="DashboardViewModel"/>, <see cref="TicketDashboardViewModel"/> bzw.
 /// <see cref="SettingsViewModel"/>.
 /// </summary>
 public sealed partial class MainWindowViewModel : ViewModelBase
@@ -16,22 +17,29 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public DashboardViewModel Dashboard { get; }
 
+    public TicketDashboardViewModel TicketDashboard { get; }
+
     public SettingsViewModel Settings { get; }
 
-    public MainWindowViewModel(DashboardViewModel dashboard, SettingsViewModel settings)
+    public MainWindowViewModel(DashboardViewModel dashboard, TicketDashboardViewModel ticketDashboard, SettingsViewModel settings)
     {
         Dashboard = dashboard;
+        TicketDashboard = ticketDashboard;
         Settings = settings;
         _currentPage = dashboard;
 
-        // Wenn Einstellungen gespeichert werden, sollen die Dashboard-Daten automatisch
-        // mit den neuen Ordnerpfaden neu geladen werden, ohne dass der Benutzer manuell
+        // Wenn Einstellungen gespeichert werden, sollen beide Dashboards automatisch
+        // mit den neuen Pfaden neu geladen werden, ohne dass der Benutzer manuell
         // zwischen den Ansichten wechseln und aktualisieren muss.
         settings.SettingsSaved += async (_, _) => await dashboard.ReloadCommand.ExecuteAsync(null);
+        settings.SettingsSaved += async (_, _) => await ticketDashboard.ReloadCommand.ExecuteAsync(null);
     }
 
     [RelayCommand]
     private void ShowDashboard() => CurrentPage = Dashboard;
+
+    [RelayCommand]
+    private void ShowTicketDashboard() => CurrentPage = TicketDashboard;
 
     [RelayCommand]
     private void ShowSettings() => CurrentPage = Settings;

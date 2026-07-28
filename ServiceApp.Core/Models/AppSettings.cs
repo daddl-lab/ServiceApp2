@@ -17,4 +17,10 @@ public sealed class AppSettings
         new ServiceNumberSettings { Id = "service-1", Name = "Servicenummer 1", PdfFolderPath = string.Empty },
         new ServiceNumberSettings { Id = "service-2", Name = "Servicenummer 2", PdfFolderPath = string.Empty }
     };
+
+    /// <summary>
+    /// Pfad zur Excel-Datei mit den Servicetickets für das Ticket-Dashboard. Leer, wenn
+    /// noch nicht konfiguriert.
+    /// </summary>
+    public string TicketExcelFilePath { get; set; } = string.Empty;
 }

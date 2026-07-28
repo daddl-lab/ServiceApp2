@@ -6,6 +6,7 @@ public enum DateRangePreset
     Today,
     ThisWeek,
     ThisMonth,
+    ThisYear,
     Custom
 }
 
@@ -47,6 +48,15 @@ public sealed record DateRangeFilter(DateOnly Start, DateOnly End, DateRangePres
         var start = new DateOnly(today.Year, today.Month, 1);
         var end = start.AddMonths(1).AddDays(-1);
         return new DateRangeFilter(start, end, DateRangePreset.ThisMonth);
+    }
+
+    /// <summary>Das aktuelle Kalenderjahr, vom 1. Januar bis zum 31. Dezember.</summary>
+    public static DateRangeFilter ThisYear(DateOnly? referenceDate = null)
+    {
+        var today = referenceDate ?? DateOnly.FromDateTime(DateTime.Now);
+        var start = new DateOnly(today.Year, 1, 1);
+        var end = new DateOnly(today.Year, 12, 31);
+        return new DateRangeFilter(start, end, DateRangePreset.ThisYear);
     }
 
     /// <summary>Ein vom Benutzer frei gewählter Zeitraum.</summary>

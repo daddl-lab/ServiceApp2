@@ -50,6 +50,17 @@ public sealed class DateRangeFilterTests
     }
 
     [Fact]
+    public void ThisYear_ReturnsJanuaryFirstToDecember31st()
+    {
+        var reference = new DateOnly(2026, 5, 10);
+        var range = DateRangeFilter.ThisYear(reference);
+
+        Assert.Equal(new DateOnly(2026, 1, 1), range.Start);
+        Assert.Equal(new DateOnly(2026, 12, 31), range.End);
+        Assert.Equal(DateRangePreset.ThisYear, range.Preset);
+    }
+
+    [Fact]
     public void CustomRange_StartAfterEnd_SwapsDatesAutomatically()
     {
         var range = DateRangeFilter.CustomRange(new DateOnly(2026, 7, 25), new DateOnly(2026, 7, 20));

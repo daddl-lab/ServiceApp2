@@ -3,6 +3,7 @@ using ServiceApp.Core.Configuration;
 using ServiceApp.Core.PdfParser;
 using ServiceApp.Core.Repository;
 using ServiceApp.Core.Statistics;
+using ServiceApp.Core.TicketParser;
 using ServiceApp.Desktop.ViewModels;
 
 namespace ServiceApp.Desktop.Services;
@@ -28,11 +29,19 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ICallRecordRepository, PdfCallRecordRepository>();
         services.AddSingleton<IStatisticsService, StatisticsService>();
         services.AddSingleton<IFolderPickerService, AvaloniaFolderPickerService>();
+        services.AddSingleton<IFilePickerService, AvaloniaFilePickerService>();
+
+        // Serviceticket-Auswertung (zweites Dashboard): eigener Excel-Parser,
+        // -Repository und -Statistik-Service, unabhängig von der Telefonberichts-Kette.
+        services.AddSingleton<IServiceTicketParser, ClosedXmlServiceTicketParser>();
+        services.AddSingleton<ITicketRepository, ExcelTicketRepository>();
+        services.AddSingleton<ITicketStatisticsService, TicketStatisticsService>();
 
         // ViewModels: als Singleton registriert, da die Anwendung ein einzelnes
-        // Hauptfenster mit fest verdrahteter Navigation zwischen Dashboard und
+        // Hauptfenster mit fest verdrahteter Navigation zwischen den Dashboards und
         // Einstellungen besitzt (kein Bedarf an mehreren unabhängigen Instanzen).
         services.AddSingleton<DashboardViewModel>();
+        services.AddSingleton<TicketDashboardViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<MainWindowViewModel>();
 

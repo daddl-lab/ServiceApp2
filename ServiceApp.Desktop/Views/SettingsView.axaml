@@ -8,7 +8,7 @@
         <StackPanel Spacing="20" MaxWidth="700">
 
             <TextBlock Text="Einstellungen" FontSize="24" FontWeight="Bold" />
-            <TextBlock Text="Konfigurieren Sie Name und PDF-Ordner für beide Servicenummern. Die Einstellungen werden dauerhaft gespeichert und beim nächsten Programmstart automatisch geladen."
+            <TextBlock Text="Konfigurieren Sie Name und PDF-Ordner für beide Servicenummern sowie die Excel-Datei für die Serviceticket-Auswertung. Die Einstellungen werden dauerhaft gespeichert und beim nächsten Programmstart automatisch geladen."
                        TextWrapping="Wrap" Opacity="0.75" />
 
             <Border Classes="card">
@@ -38,6 +38,19 @@
                     </DockPanel>
                     <TextBlock Text="{Binding ValidationMessage}" Foreground="{StaticResource MissedBrush}"
                                IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                </StackPanel>
+            </Border>
+
+            <Border Classes="card">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Serviceticket-Auswertung" Classes="sectionTitle" />
+                    <TextBlock Text="Excel-Datei mit Servicetickets" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Durchsuchen…" Command="{Binding BrowseTicketExcelFileCommand}" Margin="8 0 0 0" />
+                        <TextBox Text="{Binding TicketExcelFilePath}" Watermark="Pfad zur Excel-Datei (.xlsx)" />
+                    </DockPanel>
+                    <TextBlock Text="{Binding TicketExcelValidationMessage}" Foreground="{StaticResource MissedBrush}"
+                               IsVisible="{Binding TicketExcelValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 </StackPanel>
             </Border>
 

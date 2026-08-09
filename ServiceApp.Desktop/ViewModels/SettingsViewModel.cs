@@ -29,6 +29,12 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private string? _ticketExcelValidationMessage;
 
     [ObservableProperty]
+    private int _ticketErrorLocationTopCount;
+
+    [ObservableProperty]
+    private string? _ticketErrorLocationTopCountValidationMessage;
+
+    [ObservableProperty]
     private string? _statusMessage;
 
     /// <summary>
@@ -51,6 +57,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         FirstServiceNumber = new ServiceNumberPanelViewModel(settings.ServiceNumbers[0], folderPicker);
         SecondServiceNumber = new ServiceNumberPanelViewModel(settings.ServiceNumbers[1], folderPicker);
         _ticketExcelFilePath = settings.TicketExcelFilePath;
+        _ticketErrorLocationTopCount = settings.TicketErrorLocationTopCount;
     }
 
     [RelayCommand]
@@ -86,28 +93,44 @@ public sealed partial class SettingsViewModel : ViewModelBase
         return true;
     }
 
+    /// <summary>Prüft, ob die Top-X-Anzahl für das Störungsort-Kuchendiagramm ein gültiger Wert (mindestens 1) ist.</summary>
+    private bool ValidateTicketErrorLocationTopCount()
+    {
+        if (TicketErrorLocationTopCount < 1)
+        {
+            TicketErrorLocationTopCountValidationMessage = "Bitte geben Sie eine Zahl von mindestens 1 ein.";
+            return false;
+        }
+
+        TicketErrorLocationTopCountValidationMessage = null;
+        return true;
+    }
+
     [RelayCommand]
     private void Save()
     {
         var firstValid = FirstServiceNumber.Validate();
         var secondValid = SecondServiceNumber.Validate();
         var ticketPathValid = ValidateTicketExcelPath();
+        var topCountValid = ValidateTicketErrorLocationTopCount();
 
-        if (!firstValid || !secondValid || !ticketPathValid)
+        if (!firstValid || !secondValid || !ticketPathValid || !topCountValid)
         {
-            StatusMessage = "Bitte prüfen Sie die markierten Pfade, bevor Sie speichern.";
+            StatusMessage = "Bitte prüfen Sie die markierten Felder, bevor Sie speichern.";
             return;
         }
 
-        var settings = new AppSettings
+        // Aktuelle Einstellungen laden statt eine neue AppSettings-Instanz zu bauen, damit
+        // Felder, die nicht auf dieser Ansicht bearbeitet werden (z. B. der
+        // Typ-Filter des Ticket-Dashboards), beim Speichern nicht überschrieben werden.
+        var settings = _settingsService.Load();
+        settings.ServiceNumbers = new List<ServiceNumberSettings>
         {
-            ServiceNumbers = new List<ServiceNumberSettings>
-            {
-                FirstServiceNumber.ToSettings(),
-                SecondServiceNumber.ToSettings()
-            },
-            TicketExcelFilePath = TicketExcelFilePath
+            FirstServiceNumber.ToSettings(),
+            SecondServiceNumber.ToSettings()
         };
+        settings.TicketExcelFilePath = TicketExcelFilePath;
+        settings.TicketErrorLocationTopCount = TicketErrorLocationTopCount;
 
         _settingsService.Save(settings);
         _logger.LogInformation("Einstellungen wurden über die Oberfläche geändert und gespeichert.");

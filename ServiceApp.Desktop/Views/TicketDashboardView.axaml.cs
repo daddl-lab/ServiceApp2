@@ -11,6 +11,7 @@ public partial class TicketDashboardView : UserControl
     {
         InitializeComponent();
         CauseBreakdownPieChart.ChartPointPointerDown += OnCauseSlicePointerDown;
+        ErrorLocationBreakdownPieChart.ChartPointPointerDown += OnErrorLocationSlicePointerDown;
     }
 
     /// <summary>
@@ -24,6 +25,20 @@ public partial class TicketDashboardView : UserControl
         if (causeName is not null && DataContext is TicketDashboardViewModel viewModel)
         {
             viewModel.ShowDrillDown(causeName);
+        }
+    }
+
+    /// <summary>
+    /// Öffnet die Drill-Down-Tabelle für den angeklickten Störungsort. Der Name des
+    /// Kuchenstücks entspricht dem <c>Name</c> der zugehörigen Serie, siehe
+    /// <see cref="Charts.TicketChartFactory.CreateErrorLocationBreakdownPieSeries"/>.
+    /// </summary>
+    private void OnErrorLocationSlicePointerDown(IChartView chart, ChartPoint? point)
+    {
+        var locationName = point?.Context.Series.Name;
+        if (locationName is not null && DataContext is TicketDashboardViewModel viewModel)
+        {
+            viewModel.ShowErrorLocationDrillDown(locationName);
         }
     }
 }

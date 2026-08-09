@@ -43,6 +43,20 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     /// </summary>
     private IReadOnlyList<TicketCauseCount> _causeBreakdown = Array.Empty<TicketCauseCount>();
 
+    /// <summary>
+    /// Störungsort-Aufschlüsselung der zuletzt berechneten Statistik, benötigt um
+    /// beim Klick auf ein Kuchenstück (<see cref="ShowErrorLocationDrillDown"/>) die
+    /// zugehörigen Tickets ohne erneute Neuberechnung nachzuschlagen.
+    /// </summary>
+    private IReadOnlyList<TicketErrorLocationCount> _errorLocationBreakdown = Array.Empty<TicketErrorLocationCount>();
+
+    /// <summary>
+    /// Anzahl der im Störungsort-Kuchendiagramm einzeln gezeigten Störungsorte (siehe
+    /// <see cref="AppSettings.TicketErrorLocationTopCount"/>), bei jedem
+    /// <see cref="ReloadAsync"/> aus den Einstellungen übernommen.
+    /// </summary>
+    private int _errorLocationTopCount = 8;
+
     [ObservableProperty]
     private DateRangePreset _selectedPreset = DateRangePreset.ThisMonth;
 
@@ -63,6 +77,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     [ObservableProperty] private ISeries[] _timeSeries = Array.Empty<ISeries>();
     [ObservableProperty] private Axis[] _timeSeriesXAxes = { new Axis() };
     [ObservableProperty] private ISeries[] _causeBreakdownSeries = Array.Empty<ISeries>();
+    [ObservableProperty] private ISeries[] _errorLocationBreakdownSeries = Array.Empty<ISeries>();
 
     /// <summary>
     /// Mehrfachauswahl-Filter über die Excel-Spalte "Typ", gilt für beide Diagramme.
@@ -111,6 +126,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
         {
             var settings = await Task.Run(_settingsService.Load);
             var filePath = settings.TicketExcelFilePath;
+            _errorLocationTopCount = settings.TicketErrorLocationTopCount;
 
             var (tickets, error) = await Task.Run(() => LoadTicketsSafely(filePath));
             _tickets = tickets;
@@ -271,13 +287,15 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void RecomputeStatistics()
     {
         var range = BuildCurrentRange();
-        var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes());
+        var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes(), _errorLocationTopCount);
 
         TotalTickets = stats.TotalTickets;
         TimeSeries = TicketChartFactory.CreateTimeSeriesSeries(stats.TimeSeries);
         TimeSeriesXAxes = TicketChartFactory.CreateTimeSeriesXAxes(stats.TimeSeries);
         CauseBreakdownSeries = TicketChartFactory.CreateCauseBreakdownPieSeries(stats.CauseBreakdown);
         _causeBreakdown = stats.CauseBreakdown;
+        ErrorLocationBreakdownSeries = TicketChartFactory.CreateErrorLocationBreakdownPieSeries(stats.ErrorLocationBreakdown);
+        _errorLocationBreakdown = stats.ErrorLocationBreakdown;
 
         // Ein Zeitraum- oder Filterwechsel kann die zuvor angeklickte Ursache aus dem
         // Diagramm entfernen (z. B. keine Tickets mehr in diesem Zeitraum) - die
@@ -302,6 +320,26 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
 
         DrillDownTickets = new ObservableCollection<ServiceTicket>(match.Tickets);
         DrillDownTitle = $"{match.Cause} ({match.Count} Tickets)";
+        IsDrillDownVisible = true;
+    }
+
+    /// <summary>
+    /// Öffnet die Drill-Down-Tabelle für den angeklickten Störungsort (Name der
+    /// <see cref="LiveChartsCore.SkiaSharpView.PieSeries{TModel}"/>, siehe
+    /// <see cref="Charts.TicketChartFactory.CreateErrorLocationBreakdownPieSeries"/>).
+    /// Wird vom View-Code-Behind aus dem PointerDown-Event des Kuchendiagramms
+    /// aufgerufen.
+    /// </summary>
+    public void ShowErrorLocationDrillDown(string locationName)
+    {
+        var match = _errorLocationBreakdown.FirstOrDefault(c => c.Location == locationName);
+        if (match is null)
+        {
+            return;
+        }
+
+        DrillDownTickets = new ObservableCollection<ServiceTicket>(match.Tickets);
+        DrillDownTitle = $"{match.Location} ({match.Count} Tickets)";
         IsDrillDownVisible = true;
     }
 

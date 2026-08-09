@@ -79,6 +79,15 @@
                     </StackPanel>
                 </Border>
 
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Störungsorte" Classes="sectionTitle" />
+                        <lvc:PieChart x:Name="ErrorLocationBreakdownPieChart" Series="{Binding ErrorLocationBreakdownSeries}" Height="420"
+                                      InitialRotation="0" MaxAngle="360" LegendPosition="Right" />
+                        <TextBlock Text="Klick auf ein Kuchenstück zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
 

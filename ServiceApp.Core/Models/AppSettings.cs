@@ -31,4 +31,11 @@ public sealed class AppSettings
     /// wenn der Benutzer bewusst alle Typen ausgewählt hat.
     /// </summary>
     public List<string> TicketSelectedTypes { get; set; } = new();
+
+    /// <summary>
+    /// Anzahl der Störungsorte (Excel-Spalte "Fehlercode Ort"), die im Kuchendiagramm
+    /// des Ticket-Dashboards einzeln angezeigt werden; alle übrigen werden zu
+    /// "Sonstige" zusammengefasst.
+    /// </summary>
+    public int TicketErrorLocationTopCount { get; set; } = 8;
 }

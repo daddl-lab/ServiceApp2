@@ -8,8 +8,8 @@ public sealed class TicketStatisticsServiceTests
 {
     private readonly TicketStatisticsService _service = new();
 
-    private static ServiceTicket Ticket(DateTime createdAt, string? cause, int ticketNumber = 1, string? type = null)
-        => new(ticketNumber, createdAt, cause, type);
+    private static ServiceTicket Ticket(DateTime createdAt, string? cause, int ticketNumber = 1, string? type = null, string? errorLocation = null)
+        => new(ticketNumber, createdAt, cause, type, ErrorLocation: errorLocation);
 
     [Fact]
     public void Compute_TicketsWithinRange_CountsCorrectly()
@@ -230,5 +230,77 @@ public sealed class TicketStatisticsServiceTests
         var types = _service.GetDistinctTypes(tickets);
 
         Assert.Equal(new[] { "Anfrage", "Nicht angegeben", "Störung" }, types);
+    }
+
+    [Fact]
+    public void Compute_ErrorLocationBreakdown_KeepsTopXIndividualAndGroupsRestIntoSonstige()
+    {
+        var tickets = new List<ServiceTicket>();
+        for (var i = 0; i < 5; i++)
+        {
+            // Absteigende Häufigkeit (5, 4, 3, 2, 1), damit die Sortierung eindeutig ist.
+            for (var count = 0; count < 5 - i; count++)
+            {
+                tickets.Add(Ticket(new DateTime(2026, 3, 1), null, errorLocation: $"Ort {i}"));
+            }
+        }
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, errorLocationTopCount: 3);
+
+        Assert.Equal(4, stats.ErrorLocationBreakdown.Count);
+        Assert.Equal(new[] { "Ort 0", "Ort 1", "Ort 2", "Sonstige" }, stats.ErrorLocationBreakdown.Select(c => c.Location));
+        Assert.Equal(3, stats.ErrorLocationBreakdown.Last().Count); // Ort 3 (2) + Ort 4 (1)
+        Assert.Equal(tickets.Count, stats.ErrorLocationBreakdown.Sum(c => c.Count));
+        Assert.Equal(tickets.Count, stats.ErrorLocationBreakdown.Sum(c => c.Tickets.Count));
+    }
+
+    [Fact]
+    public void Compute_ErrorLocationBreakdown_FewerLocationsThanTopCount_NoSonstigeGroupCreated()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, errorLocation: "Ort A"),
+            Ticket(new DateTime(2026, 3, 2), null, errorLocation: "Ort B")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, errorLocationTopCount: 8);
+
+        Assert.Equal(2, stats.ErrorLocationBreakdown.Count);
+        Assert.DoesNotContain(stats.ErrorLocationBreakdown, c => c.Location == "Sonstige");
+    }
+
+    [Fact]
+    public void Compute_ErrorLocationBreakdown_MissingLocation_GroupedAsNichtAngegeben()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, errorLocation: null),
+            Ticket(new DateTime(2026, 3, 2), null, errorLocation: "  "),
+            Ticket(new DateTime(2026, 3, 3), null, errorLocation: "Ort A")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        Assert.Equal(2, stats.ErrorLocationBreakdown.Single(c => c.Location == "Nicht angegeben").Count);
+        Assert.Equal(1, stats.ErrorLocationBreakdown.Single(c => c.Location == "Ort A").Count);
+    }
+
+    [Fact]
+    public void Compute_ErrorLocationTopCountLessThanOne_TreatedAsOne()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, errorLocation: "Ort A"),
+            Ticket(new DateTime(2026, 3, 2), null, errorLocation: "Ort A"),
+            Ticket(new DateTime(2026, 3, 3), null, errorLocation: "Ort B")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, errorLocationTopCount: 0);
+
+        Assert.Equal(new[] { "Ort A", "Sonstige" }, stats.ErrorLocationBreakdown.Select(c => c.Location));
     }
 }

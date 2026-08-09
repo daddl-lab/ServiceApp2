@@ -51,6 +51,11 @@
                     </DockPanel>
                     <TextBlock Text="{Binding TicketExcelValidationMessage}" Foreground="{StaticResource MissedBrush}"
                                IsVisible="{Binding TicketExcelValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="Anzahl Störungsorte im Kuchendiagramm (Top X, Rest als &quot;Sonstige&quot;)" Margin="0 8 0 0" />
+                    <NumericUpDown Value="{Binding TicketErrorLocationTopCount}" Minimum="1" Maximum="50" Increment="1"
+                                   FormatString="0" HorizontalAlignment="Left" Width="140" />
+                    <TextBlock Text="{Binding TicketErrorLocationTopCountValidationMessage}" Foreground="{StaticResource MissedBrush}"
+                               IsVisible="{Binding TicketErrorLocationTopCountValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 </StackPanel>
             </Border>
 

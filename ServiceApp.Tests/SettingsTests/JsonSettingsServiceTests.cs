@@ -56,6 +56,18 @@ public sealed class JsonSettingsServiceTests : IDisposable
     }
 
     [Fact]
+    public void SaveThenLoad_RoundTripsTicketErrorLocationTopCount()
+    {
+        var service = new JsonSettingsService(NullLogger<JsonSettingsService>.Instance, _settingsFilePath);
+        var settings = new AppSettings { TicketErrorLocationTopCount = 12 };
+
+        service.Save(settings);
+        var loaded = service.Load();
+
+        Assert.Equal(12, loaded.TicketErrorLocationTopCount);
+    }
+
+    [Fact]
     public void Save_CreatesDirectoryIfItDoesNotExist()
     {
         var service = new JsonSettingsService(NullLogger<JsonSettingsService>.Instance, _settingsFilePath);

@@ -51,4 +51,12 @@ public sealed class AppSettingsTests
         Assert.Equal(2, settings.ServiceNumbers.Count);
         Assert.All(settings.ServiceNumbers, s => Assert.Equal(string.Empty, s.PdfFolderPath));
     }
+
+    [Fact]
+    public void DefaultConstructor_TicketErrorLocationTopCount_DefaultsToEight()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(8, settings.TicketErrorLocationTopCount);
+    }
 }

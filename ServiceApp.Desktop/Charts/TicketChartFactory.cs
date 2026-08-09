@@ -84,4 +84,27 @@ public static class TicketChartFactory
 
         return series.ToArray();
     }
+
+    /// <summary>Kuchendiagramm der Störungsort-Verteilung (Top X, Rest als "Sonstige").</summary>
+    public static ISeries[] CreateErrorLocationBreakdownPieSeries(IReadOnlyList<TicketErrorLocationCount> errorLocationBreakdown)
+    {
+        var series = new List<ISeries>(errorLocationBreakdown.Count);
+        var paletteIndex = 0;
+
+        foreach (var location in errorLocationBreakdown)
+        {
+            var color = location.Location == OtherCauseLabel
+                ? OtherCauseColor
+                : CausePalette[paletteIndex++ % CausePalette.Length];
+
+            series.Add(new PieSeries<double>
+            {
+                Name = location.Location,
+                Values = new double[] { location.Count },
+                Fill = new SolidColorPaint(color)
+            });
+        }
+
+        return series.ToArray();
+    }
 }

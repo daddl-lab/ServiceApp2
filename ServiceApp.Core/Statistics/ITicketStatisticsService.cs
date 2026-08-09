@@ -20,7 +20,17 @@ public interface ITicketStatisticsService
     /// Werte der Spalte "Typ", auf die zusätzlich gefiltert werden soll (Mehrfachauswahl).
     /// <c>null</c> oder eine leere Menge bedeutet "kein Filter, alle Typen anzeigen".
     /// </param>
-    TicketStatistics Compute(IReadOnlyList<ServiceTicket> tickets, DateRangeFilter range, IReadOnlyCollection<string>? selectedTypes = null);
+    /// <param name="errorLocationTopCount">
+    /// Anzahl der Störungsorte, die im Kuchendiagramm einzeln ausgewiesen werden
+    /// (siehe <see cref="Models.AppSettings.TicketErrorLocationTopCount"/>); alle
+    /// übrigen werden zu "Sonstige" zusammengefasst. Werte kleiner als 1 werden wie 1
+    /// behandelt.
+    /// </param>
+    TicketStatistics Compute(
+        IReadOnlyList<ServiceTicket> tickets,
+        DateRangeFilter range,
+        IReadOnlyCollection<string>? selectedTypes = null,
+        int errorLocationTopCount = 8);
 
     /// <summary>
     /// Ermittelt alle im Datenbestand vorkommenden Typ-Werte (Spalte "Typ"), alphabetisch

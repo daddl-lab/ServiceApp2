@@ -21,4 +21,10 @@ public sealed class TicketStatistics
     /// (Sammeleintrag "Sonstige" steht am Ende).
     /// </summary>
     public IReadOnlyList<TicketCauseCount> CauseBreakdown { get; init; } = Array.Empty<TicketCauseCount>();
+
+    /// <summary>
+    /// Verteilung der Tickets nach Störungsort, absteigend nach Häufigkeit sortiert
+    /// (Sammeleintrag "Sonstige" steht am Ende).
+    /// </summary>
+    public IReadOnlyList<TicketErrorLocationCount> ErrorLocationBreakdown { get; init; } = Array.Empty<TicketErrorLocationCount>();
 }

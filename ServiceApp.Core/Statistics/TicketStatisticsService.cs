@@ -28,8 +28,15 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
     /// <summary>Bezeichnung, unter der Tickets ohne Typ-Angabe im Filter geführt werden.</summary>
     private const string UnspecifiedTypeLabel = "Nicht angegeben";
 
+    /// <summary>Bezeichnung, unter der Tickets ohne Störungsort-Angabe geführt werden.</summary>
+    private const string UnspecifiedLocationLabel = "Nicht angegeben";
+
     /// <inheritdoc />
-    public TicketStatistics Compute(IReadOnlyList<ServiceTicket> tickets, DateRangeFilter range, IReadOnlyCollection<string>? selectedTypes = null)
+    public TicketStatistics Compute(
+        IReadOnlyList<ServiceTicket> tickets,
+        DateRangeFilter range,
+        IReadOnlyCollection<string>? selectedTypes = null,
+        int errorLocationTopCount = 8)
     {
         var ticketsInRange = tickets
             .Where(t => range.Contains(DateOnly.FromDateTime(t.CreatedAt)))
@@ -40,7 +47,8 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
         {
             TotalTickets = ticketsInRange.Count,
             TimeSeries = BuildTimeSeries(ticketsInRange, range),
-            CauseBreakdown = BuildCauseBreakdown(ticketsInRange)
+            CauseBreakdown = BuildCauseBreakdown(ticketsInRange),
+            ErrorLocationBreakdown = BuildErrorLocationBreakdown(ticketsInRange, errorLocationTopCount)
         };
     }
 
@@ -132,6 +140,35 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
 
         var otherTickets = tail.SelectMany(c => c.Tickets).ToList();
         top.Add(new TicketCauseCount(OtherCauseLabel, otherTickets.Count, otherTickets));
+        return top;
+    }
+
+    /// <summary>
+    /// Gruppiert Tickets nach Störungsort (Excel-Spalte "Fehlercode Ort"). Fehlt der
+    /// Störungsort, zählt das Ticket als "Nicht angegeben". Anders als bei
+    /// <see cref="BuildCauseBreakdown"/> gilt hier eine in den Einstellungen
+    /// konfigurierbare Top-X-Grenze statt eines Prozentanteils: die
+    /// <paramref name="topCount"/> häufigsten Störungsorte werden einzeln ausgewiesen,
+    /// der Rest wird zu "Sonstige" zusammengefasst.
+    /// </summary>
+    private static List<TicketErrorLocationCount> BuildErrorLocationBreakdown(IReadOnlyList<ServiceTicket> tickets, int topCount)
+    {
+        var grouped = tickets
+            .GroupBy(t => string.IsNullOrWhiteSpace(t.ErrorLocation) ? UnspecifiedLocationLabel : t.ErrorLocation.Trim())
+            .Select(g => new TicketErrorLocationCount(g.Key, g.Count(), g.ToList()))
+            .OrderByDescending(c => c.Count)
+            .ToList();
+
+        var effectiveTopCount = Math.Max(1, topCount);
+        if (grouped.Count <= effectiveTopCount)
+        {
+            return grouped;
+        }
+
+        var top = grouped.Take(effectiveTopCount).ToList();
+        var tail = grouped.Skip(effectiveTopCount).ToList();
+        var otherTickets = tail.SelectMany(c => c.Tickets).ToList();
+        top.Add(new TicketErrorLocationCount(OtherCauseLabel, otherTickets.Count, otherTickets));
         return top;
     }
 }

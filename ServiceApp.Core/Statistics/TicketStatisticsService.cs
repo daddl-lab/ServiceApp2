@@ -16,10 +16,11 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
     private const int MonthlyBucketThresholdDays = 62;
 
     /// <summary>
-    /// Maximale Anzahl unterschiedlicher Ursachen, die einzeln im Kuchendiagramm
-    /// gezeigt werden; alles darüber hinaus wird zu "Sonstige" zusammengefasst.
+    /// Mindestanteil an den Gesamttickets, den eine Fehlerursache haben muss, um im
+    /// Kuchendiagramm einzeln ausgewiesen zu werden; alles darunter wird zu "Sonstige"
+    /// zusammengefasst.
     /// </summary>
-    private const int MaxCauseSlices = 9;
+    private const double OtherCauseShareThreshold = 0.02;
 
     private const string UnspecifiedCauseLabel = "Nicht angegeben";
     private const string OtherCauseLabel = "Sonstige";
@@ -103,9 +104,9 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
     /// <summary>
     /// Gruppiert Tickets nach Fehlerursache. Fehlt die Ursache, zählt das Ticket als
     /// "Nicht angegeben". Damit das Kuchendiagramm bei vielen unterschiedlichen
-    /// Ursachen (in der Praxis 70+) lesbar bleibt, werden nur die
-    /// <see cref="MaxCauseSlices"/> häufigsten einzeln ausgewiesen; der Rest wird zu
-    /// "Sonstige" zusammengefasst.
+    /// Ursachen (in der Praxis 70+) lesbar bleibt, werden nur Ursachen mit mindestens
+    /// <see cref="OtherCauseShareThreshold"/> Anteil an den Gesamttickets einzeln
+    /// ausgewiesen; der Rest wird zu "Sonstige" zusammengefasst.
     /// </summary>
     private static List<TicketCauseCount> BuildCauseBreakdown(IReadOnlyList<ServiceTicket> tickets)
     {
@@ -115,13 +116,20 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
             .OrderByDescending(c => c.Count)
             .ToList();
 
-        if (grouped.Count <= MaxCauseSlices)
+        if (tickets.Count == 0)
         {
             return grouped;
         }
 
-        var top = grouped.Take(MaxCauseSlices - 1).ToList();
-        var tail = grouped.Skip(MaxCauseSlices - 1).ToList();
+        var minCount = tickets.Count * OtherCauseShareThreshold;
+        var top = grouped.Where(c => c.Count >= minCount).ToList();
+        var tail = grouped.Where(c => c.Count < minCount).ToList();
+
+        if (tail.Count == 0)
+        {
+            return top;
+        }
+
         var otherTickets = tail.SelectMany(c => c.Tickets).ToList();
         top.Add(new TicketCauseCount(OtherCauseLabel, otherTickets.Count, otherTickets));
         return top;

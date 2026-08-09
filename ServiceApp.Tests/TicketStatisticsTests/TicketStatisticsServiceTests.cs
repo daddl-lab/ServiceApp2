@@ -76,27 +76,55 @@ public sealed class TicketStatisticsServiceTests
     }
 
     [Fact]
-    public void Compute_ManyDistinctCauses_GroupsTailIntoSonstige()
+    public void Compute_ManyDistinctCauses_GroupsCausesBelowTwoPercentIntoSonstige()
     {
-        var tickets = new List<ServiceTicket>();
-        for (var i = 0; i < 12; i++)
+        // Gesamt 100 Tickets: A/B/C/D liegen bei >= 2 % (50, 30, 15, 2) und bleiben
+        // einzeln, E/F/G liegen je bei 1 % und werden zu "Sonstige" zusammengefasst.
+        var shares = new (string Cause, int Count)[]
         {
-            // Je Ursache eine absteigende Häufigkeit (12, 11, 10, ...), damit die
-            // Sortierung eindeutig ist.
-            for (var count = 0; count < 12 - i; count++)
+            ("Ursache A", 50),
+            ("Ursache B", 30),
+            ("Ursache C", 15),
+            ("Ursache D", 2),
+            ("Ursache E", 1),
+            ("Ursache F", 1),
+            ("Ursache G", 1)
+        };
+        var tickets = new List<ServiceTicket>();
+        foreach (var (cause, count) in shares)
+        {
+            for (var i = 0; i < count; i++)
             {
-                tickets.Add(Ticket(new DateTime(2026, 3, 1), $"Ursache {i}"));
+                tickets.Add(Ticket(new DateTime(2026, 3, 1), cause));
             }
         }
         var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
 
         var stats = _service.Compute(tickets, range);
 
-        Assert.Equal(9, stats.CauseBreakdown.Count);
-        Assert.Equal("Sonstige", stats.CauseBreakdown.Last().Cause);
+        Assert.Equal(5, stats.CauseBreakdown.Count);
+        Assert.Equal(new[] { "Ursache A", "Ursache B", "Ursache C", "Ursache D", "Sonstige" },
+            stats.CauseBreakdown.Select(c => c.Cause));
+        Assert.Equal(3, stats.CauseBreakdown.Last().Count);
         Assert.Equal(tickets.Count, stats.CauseBreakdown.Sum(c => c.Count));
         Assert.Equal(tickets.Count, stats.CauseBreakdown.Sum(c => c.Tickets.Count));
         Assert.Equal(stats.CauseBreakdown.Last().Count, stats.CauseBreakdown.Last().Tickets.Count);
+    }
+
+    [Fact]
+    public void Compute_AllCausesAboveTwoPercent_NoSonstigeGroupCreated()
+    {
+        var tickets = new List<ServiceTicket>();
+        for (var i = 0; i < 5; i++)
+        {
+            tickets.Add(Ticket(new DateTime(2026, 3, 1), $"Ursache {i}"));
+        }
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        Assert.Equal(5, stats.CauseBreakdown.Count);
+        Assert.DoesNotContain(stats.CauseBreakdown, c => c.Cause == "Sonstige");
     }
 
     [Fact]

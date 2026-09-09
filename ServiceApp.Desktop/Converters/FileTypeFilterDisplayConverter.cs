@@ -15,6 +15,11 @@ public sealed class FileTypeFilterDisplayConverter : IValueConverter
     public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         => value is FileTypeFilter filter ? filter.DisplayName() : value?.ToString();
 
+    /// <summary>
+    /// Siehe <see cref="FileSizeDisplayConverter.ConvertBack"/>: Avalonias Bindungs-Engine
+    /// kann <c>ConvertBack</c> auch für nominell einseitige Bindungen aufrufen, ein Werfen
+    /// einer Exception hier führte zu einem harten Absturz der Anwendung.
+    /// </summary>
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotSupportedException();
+        => Avalonia.Data.BindingOperations.DoNothing;
 }

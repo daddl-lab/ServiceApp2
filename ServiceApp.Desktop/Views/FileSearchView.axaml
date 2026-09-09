@@ -21,7 +21,7 @@
                     <ComboBox ItemsSource="{Binding FileTypeOptions}" SelectedItem="{Binding SelectedFileType}" Width="180">
                         <ComboBox.ItemTemplate>
                             <DataTemplate x:DataType="models:FileTypeFilter">
-                                <TextBlock Text="{Binding Converter={x:Static converters:FileTypeFilterDisplayConverter.Instance}}" />
+                                <TextBlock Text="{Binding Mode=OneWay, Converter={x:Static converters:FileTypeFilterDisplayConverter.Instance}}" />
                             </DataTemplate>
                         </ComboBox.ItemTemplate>
                     </ComboBox>
@@ -47,11 +47,11 @@
                   GridLinesVisibility="Horizontal" HeadersVisibility="Column"
                   DoubleTapped="OnResultDoubleTapped">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Dateiname" x:DataType="models:FileArchiveEntry" Binding="{Binding FileName}" Width="2*" />
-                <DataGridTextColumn Header="Typ" x:DataType="models:FileArchiveEntry" Binding="{Binding Extension}" Width="*" />
-                <DataGridTextColumn Header="Pfad" x:DataType="models:FileArchiveEntry" Binding="{Binding DirectoryPath}" Width="3*" />
-                <DataGridTextColumn Header="Änderungsdatum" x:DataType="models:FileArchiveEntry" Binding="{Binding LastWriteUtc, StringFormat='{}{0:dd.MM.yyyy HH:mm}'}" Width="1.3*" />
-                <DataGridTextColumn Header="Größe" x:DataType="models:FileArchiveEntry" Binding="{Binding SizeBytes, Converter={x:Static converters:FileSizeDisplayConverter.Instance}}" Width="*" />
+                <DataGridTextColumn Header="Dateiname" x:DataType="models:FileArchiveEntry" Binding="{Binding FileName, Mode=OneWay}" Width="2*" />
+                <DataGridTextColumn Header="Typ" x:DataType="models:FileArchiveEntry" Binding="{Binding Extension, Mode=OneWay}" Width="*" />
+                <DataGridTextColumn Header="Pfad" x:DataType="models:FileArchiveEntry" Binding="{Binding DirectoryPath, Mode=OneWay}" Width="3*" />
+                <DataGridTextColumn Header="Änderungsdatum" x:DataType="models:FileArchiveEntry" Binding="{Binding LastWriteUtc, Mode=OneWay, StringFormat='{}{0:dd.MM.yyyy HH:mm}'}" Width="1.3*" />
+                <DataGridTextColumn Header="Größe" x:DataType="models:FileArchiveEntry" Binding="{Binding SizeBytes, Mode=OneWay, Converter={x:Static converters:FileSizeDisplayConverter.Instance}}" Width="*" />
             </DataGrid.Columns>
             <DataGrid.ContextMenu>
                 <ContextMenu>

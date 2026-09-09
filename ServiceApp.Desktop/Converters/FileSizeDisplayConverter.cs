@@ -29,6 +29,15 @@ public sealed class FileSizeDisplayConverter : IValueConverter
         return $"{size.ToString(format, CultureInfo.GetCultureInfo("de-DE"))} {Units[unitIndex]}";
     }
 
+    /// <summary>
+    /// Diese Spalte ist nur lesend gedacht (siehe <c>Mode=OneWay</c> in
+    /// <c>FileSearchView.axaml</c>); Avalonias Bindungs-Engine ruft <c>ConvertBack</c> aber
+    /// auch für nominell einseitige Bindungen auf (z. B. im Rahmen der
+    /// DataGrid-Spaltensortierung), unabhängig vom konkreten Suchergebnis. Ein Werfen einer
+    /// Exception hier führte deshalb zu einem harten Absturz der Anwendung - anders als in
+    /// WPF ist <see cref="Avalonia.Data.BindingOperations.DoNothing"/> der korrekte Weg,
+    /// "kein Rückweg unterstützt" zu signalisieren, ohne die Anwendung zu beenden.
+    /// </summary>
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
-        => throw new NotSupportedException();
+        => Avalonia.Data.BindingOperations.DoNothing;
 }

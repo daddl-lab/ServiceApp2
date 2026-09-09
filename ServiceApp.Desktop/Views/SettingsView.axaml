@@ -59,6 +59,42 @@
                 </StackPanel>
             </Border>
 
+            <Border Classes="card">
+                <StackPanel Spacing="10" DataContext="{Binding FileArchive}">
+                    <TextBlock Text="Zeichnungsarchiv-Dateisuche" Classes="sectionTitle" />
+                    <TextBlock Text="Archivpfad (Netzlaufwerk)" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Durchsuchen…" Command="{Binding BrowseArchivePathCommand}" Margin="8 0 0 0" />
+                        <TextBox Text="{Binding DrawingArchivePath}" Watermark="z. B. \\SERVER\Zeichnungsarchiv" />
+                    </DockPanel>
+
+                    <TextBlock Text="Index-Speicherort" Margin="0 8 0 0" />
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="Durchsuchen…" Command="{Binding BrowseIndexLocationCommand}" Margin="8 0 0 0" />
+                        <TextBox Text="{Binding IndexDatabasePath}" Watermark="Leer = Standardspeicherort verwenden" />
+                    </DockPanel>
+
+                    <CheckBox Content="Index automatisch im Hintergrund aktualisieren" IsChecked="{Binding AutoUpdateEnabled}" Margin="0 8 0 0" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Aktualisierungsintervall (Minuten)" VerticalAlignment="Center" />
+                        <NumericUpDown Value="{Binding UpdateIntervalMinutes}" Minimum="1" Maximum="1440" Increment="1" FormatString="0" Width="140" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Maximale Anzahl angezeigter Treffer" VerticalAlignment="Center" />
+                        <NumericUpDown Value="{Binding MaxDisplayedResults}" Minimum="1" Maximum="1000000" Increment="100" FormatString="0" Width="140" />
+                    </StackPanel>
+                    <CheckBox Content="Groß-/Kleinschreibung bei der Suche berücksichtigen" IsChecked="{Binding CaseSensitiveSearch}" />
+
+                    <TextBlock Text="{Binding ValidationMessage}" Foreground="{StaticResource MissedBrush}"
+                               IsVisible="{Binding ValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="12" Margin="0 8 0 0">
+                        <Button Content="Index jetzt aktualisieren" Command="{Binding RunIndexUpdateNowCommand}" IsEnabled="{Binding !IsUpdatingIndex}" />
+                        <TextBlock Text="{Binding IndexStatusText}" VerticalAlignment="Center" Opacity="0.8" TextWrapping="Wrap" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <StackPanel Orientation="Horizontal" Spacing="12">
                 <Button Content="Speichern" Command="{Binding SaveCommand}" Classes="accent" />
                 <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Opacity="0.8" />

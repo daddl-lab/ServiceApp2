@@ -38,4 +38,40 @@ public sealed class AppSettings
     /// "Sonstige" zusammengefasst.
     /// </summary>
     public int TicketErrorLocationTopCount { get; set; } = 8;
+
+    /// <summary>
+    /// UNC-Pfad des Zeichnungsarchiv-Netzlaufwerks (z. B. <c>\\SERVER\Zeichnungsarchiv</c>).
+    /// Leer, wenn noch nicht konfiguriert.
+    /// </summary>
+    public string DrawingArchivePath { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Speicherort der lokalen SQLite-Indexdatenbank für die Archivsuche. Leer bedeutet:
+    /// Standardpfad unter <c>%AppData%/ServiceApp/index</c> verwenden (siehe
+    /// <see cref="FileArchive.FileArchiveIndexStore"/>).
+    /// </summary>
+    public string FileArchiveIndexDatabasePath { get; set; } = string.Empty;
+
+    /// <summary>Ob der Suchindex automatisch im Hintergrund aktuell gehalten werden soll.</summary>
+    public bool FileArchiveAutoUpdateEnabled { get; set; } = true;
+
+    /// <summary>Intervall zwischen automatischen inkrementellen Index-Aktualisierungen, in Minuten.</summary>
+    public int FileArchiveUpdateIntervalMinutes { get; set; } = 60;
+
+    /// <summary>
+    /// Obergrenze der in der Trefferliste angezeigten (und tatsächlich gesuchten) Dateien,
+    /// um Oberfläche und Speicherverbrauch bei sehr unspezifischen Suchbegriffen zu schützen.
+    /// </summary>
+    public int FileArchiveMaxDisplayedResults { get; set; } = 5000;
+
+    /// <summary>Ob die Archivsuche standardmäßig Groß-/Kleinschreibung berücksichtigt (Standard: nein).</summary>
+    public bool FileArchiveCaseSensitiveSearch { get; set; }
+
+    /// <summary>
+    /// Zeichenlängen der ersten drei Verzeichnisebenen des Archivs, in dieser Reihenfolge.
+    /// Standard 2/3/4 Zeichen entspricht dem in der Aufgabenstellung beschriebenen Beispiel
+    /// (Suchbegriff "123456789" → Pfad "12\345\6789"); konfigurierbar, falls die reale
+    /// Ordnerstruktur des Archivs davon abweicht.
+    /// </summary>
+    public int[] FileArchiveLevelLengths { get; set; } = { 2, 3, 4 };
 }

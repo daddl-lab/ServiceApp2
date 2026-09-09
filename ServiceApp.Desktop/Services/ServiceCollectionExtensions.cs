@@ -1,5 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using ServiceApp.Core.Configuration;
+using ServiceApp.Core.FileArchive;
 using ServiceApp.Core.PdfParser;
 using ServiceApp.Core.Repository;
 using ServiceApp.Core.Statistics;
@@ -37,11 +39,31 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ITicketRepository, ExcelTicketRepository>();
         services.AddSingleton<ITicketStatisticsService, TicketStatisticsService>();
 
+        // Zeichnungsarchiv-Dateisuche: lokaler SQLite-Index (Speicherort wird einmalig aus
+        // den Einstellungen aufgelöst; ein späteres Ändern des Speicherorts wirkt erst nach
+        // einem Neustart der Anwendung, der Archivpfad selbst dagegen wird bei jedem
+        // Scan-Zyklus frisch aus den Einstellungen gelesen), Index- und Suchservice sowie
+        // ein Hintergrunddienst, der den Index automatisch aktuell hält.
+        services.AddSingleton<IFileSystemWalker, LocalFileSystemWalker>();
+        services.AddSingleton<IFileArchiveIndexStore>(provider =>
+        {
+            var settings = provider.GetRequiredService<ISettingsService>().Load();
+            var databasePath = string.IsNullOrWhiteSpace(settings.FileArchiveIndexDatabasePath)
+                ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ServiceApp", "index", "filearchive-index.db")
+                : settings.FileArchiveIndexDatabasePath;
+            return new FileArchiveIndexStore(provider.GetRequiredService<ILogger<FileArchiveIndexStore>>(), databasePath);
+        });
+        services.AddSingleton<IFileArchiveIndexService, FileArchiveIndexService>();
+        services.AddSingleton<IFileArchiveSearchService, FileArchiveSearchService>();
+        services.AddSingleton<IShellLaunchService, ShellLaunchService>();
+        services.AddHostedService<FileArchiveIndexHostedService>();
+
         // ViewModels: als Singleton registriert, da die Anwendung ein einzelnes
         // Hauptfenster mit fest verdrahteter Navigation zwischen den Dashboards und
         // Einstellungen besitzt (kein Bedarf an mehreren unabhängigen Instanzen).
         services.AddSingleton<DashboardViewModel>();
         services.AddSingleton<TicketDashboardViewModel>();
+        services.AddSingleton<FileSearchViewModel>();
         services.AddSingleton<SettingsViewModel>();
         services.AddSingleton<MainWindowViewModel>();
 

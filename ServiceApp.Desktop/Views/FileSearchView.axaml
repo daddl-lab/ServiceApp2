@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ServiceApp.Desktop.ViewModels"
+             xmlns:models="using:ServiceApp.Core.Models"
+             xmlns:converters="using:ServiceApp.Desktop.Converters"
+             x:Class="ServiceApp.Desktop.Views.FileSearchView"
+             x:DataType="vm:FileSearchViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+
+        <!-- Suchleiste: großes, gut sichtbares Suchfeld + Dateityp-Filter -->
+        <Border Grid.Row="0" Padding="16 12" Background="{DynamicResource SystemAltHighColor}">
+            <StackPanel Spacing="10">
+                <TextBlock Text="Zeichnungsarchiv – Dateisuche" Classes="sectionTitle" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox x:Name="SearchTextBox" Text="{Binding SearchTerm}" Watermark="Suchbegriff, z. B. 123456789 oder 123* oder 12345?789"
+                             FontSize="18" Width="480" VerticalContentAlignment="Center"
+                             KeyDown="OnSearchTextBoxKeyDown" />
+                    <Button Content="Suchen" Command="{Binding SearchCommand}" IsDefault="True" FontSize="16" Padding="20 8" Classes="accent" />
+                    <TextBlock Text="Dateityp:" VerticalAlignment="Center" Margin="16 0 0 0" />
+                    <ComboBox ItemsSource="{Binding FileTypeOptions}" SelectedItem="{Binding SelectedFileType}" Width="180">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate x:DataType="models:FileTypeFilter">
+                                <TextBlock Text="{Binding Converter={x:Static converters:FileTypeFilterDisplayConverter.Instance}}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </StackPanel>
+                <TextBlock Text="Platzhalter: * = beliebig viele Zeichen, ? = genau ein Zeichen. Ohne Platzhalter wird exakt gesucht." Classes="hint" />
+            </StackPanel>
+        </Border>
+
+        <!-- Statuszeile -->
+        <Border Grid.Row="1" Padding="16 8">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding ElapsedTimeText, StringFormat='Suchdauer: {0}'}" VerticalAlignment="Center" Opacity="0.7"
+                           IsVisible="{Binding ElapsedTimeText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+            </StackPanel>
+        </Border>
+
+        <!-- Ergebnistabelle: sortierbar, virtualisiert (Avalonia-DataGrid-Standardverhalten),
+             daher auch bei mehreren tausend Treffern flüssig bedienbar. -->
+        <DataGrid x:Name="ResultsGrid" Grid.Row="2" Margin="16 0 16 16"
+                  ItemsSource="{Binding ResultsView}"
+                  AutoGenerateColumns="False" IsReadOnly="True" CanUserSortColumns="True"
+                  GridLinesVisibility="Horizontal" HeadersVisibility="Column"
+                  DoubleTapped="OnResultDoubleTapped">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Dateiname" x:DataType="models:FileArchiveEntry" Binding="{Binding FileName}" Width="2*" />
+                <DataGridTextColumn Header="Typ" x:DataType="models:FileArchiveEntry" Binding="{Binding Extension}" Width="*" />
+                <DataGridTextColumn Header="Pfad" x:DataType="models:FileArchiveEntry" Binding="{Binding DirectoryPath}" Width="3*" />
+                <DataGridTextColumn Header="Änderungsdatum" x:DataType="models:FileArchiveEntry" Binding="{Binding LastWriteUtc, StringFormat='{}{0:dd.MM.yyyy HH:mm}'}" Width="1.3*" />
+                <DataGridTextColumn Header="Größe" x:DataType="models:FileArchiveEntry" Binding="{Binding SizeBytes, Converter={x:Static converters:FileSizeDisplayConverter.Instance}}" Width="*" />
+            </DataGrid.Columns>
+            <DataGrid.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Datei öffnen" Click="OnOpenFileClick" />
+                    <MenuItem Header="Ordner öffnen" Click="OnOpenContainingFolderClick" />
+                    <MenuItem Header="Pfad kopieren" Click="OnCopyPathClick" />
+                </ContextMenu>
+            </DataGrid.ContextMenu>
+        </DataGrid>
+
+    </Grid>
+
+</UserControl>

@@ -19,12 +19,16 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     public TicketDashboardViewModel TicketDashboard { get; }
 
+    public FileSearchViewModel FileSearch { get; }
+
     public SettingsViewModel Settings { get; }
 
-    public MainWindowViewModel(DashboardViewModel dashboard, TicketDashboardViewModel ticketDashboard, SettingsViewModel settings)
+    public MainWindowViewModel(
+        DashboardViewModel dashboard, TicketDashboardViewModel ticketDashboard, FileSearchViewModel fileSearch, SettingsViewModel settings)
     {
         Dashboard = dashboard;
         TicketDashboard = ticketDashboard;
+        FileSearch = fileSearch;
         Settings = settings;
         _currentPage = dashboard;
 
@@ -40,6 +44,9 @@ public sealed partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void ShowTicketDashboard() => CurrentPage = TicketDashboard;
+
+    [RelayCommand]
+    private void ShowFileSearch() => CurrentPage = FileSearch;
 
     [RelayCommand]
     private void ShowSettings() => CurrentPage = Settings;

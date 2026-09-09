@@ -48,12 +48,18 @@ public static class Program
         var logger = AppHost.Services.GetRequiredService<ILogger<App>>();
         logger.LogInformation("ServiceApp wird gestartet.");
 
+        // Der Host selbst muss explizit gestartet werden, damit registrierte
+        // IHostedService-Implementierungen (siehe FileArchiveIndexHostedService) tatsächlich
+        // laufen - reines Bauen des Hosts (Build()) tut das nicht.
+        AppHost.Start();
+
         try
         {
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
         }
         finally
         {
+            AppHost.StopAsync().GetAwaiter().GetResult();
             AppHost.Dispose();
         }
     }

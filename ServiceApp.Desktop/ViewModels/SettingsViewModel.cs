@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using ServiceApp.Core.Configuration;
+using ServiceApp.Core.FileArchive;
 using ServiceApp.Core.Models;
 using ServiceApp.Desktop.Services;
 
@@ -21,6 +22,8 @@ public sealed partial class SettingsViewModel : ViewModelBase
     public ServiceNumberPanelViewModel FirstServiceNumber { get; }
 
     public ServiceNumberPanelViewModel SecondServiceNumber { get; }
+
+    public ArchiveSettingsPanelViewModel FileArchive { get; }
 
     [ObservableProperty]
     private string _ticketExcelFilePath;
@@ -47,7 +50,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
         ISettingsService settingsService,
         IFolderPickerService folderPicker,
         IFilePickerService filePicker,
-        ILogger<SettingsViewModel> logger)
+        IFileArchiveIndexService fileArchiveIndexService,
+        ILogger<SettingsViewModel> logger,
+        ILogger<ArchiveSettingsPanelViewModel> archiveLogger)
     {
         _settingsService = settingsService;
         _filePicker = filePicker;
@@ -56,6 +61,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         var settings = _settingsService.Load();
         FirstServiceNumber = new ServiceNumberPanelViewModel(settings.ServiceNumbers[0], folderPicker);
         SecondServiceNumber = new ServiceNumberPanelViewModel(settings.ServiceNumbers[1], folderPicker);
+        FileArchive = new ArchiveSettingsPanelViewModel(settings, folderPicker, fileArchiveIndexService, archiveLogger);
         _ticketExcelFilePath = settings.TicketExcelFilePath;
         _ticketErrorLocationTopCount = settings.TicketErrorLocationTopCount;
     }
@@ -113,8 +119,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
         var secondValid = SecondServiceNumber.Validate();
         var ticketPathValid = ValidateTicketExcelPath();
         var topCountValid = ValidateTicketErrorLocationTopCount();
+        var archiveValid = FileArchive.Validate();
 
-        if (!firstValid || !secondValid || !ticketPathValid || !topCountValid)
+        if (!firstValid || !secondValid || !ticketPathValid || !topCountValid || !archiveValid)
         {
             StatusMessage = "Bitte prüfen Sie die markierten Felder, bevor Sie speichern.";
             return;
@@ -131,6 +138,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         };
         settings.TicketExcelFilePath = TicketExcelFilePath;
         settings.TicketErrorLocationTopCount = TicketErrorLocationTopCount;
+        FileArchive.ApplyTo(settings);
 
         _settingsService.Save(settings);
         _logger.LogInformation("Einstellungen wurden über die Oberfläche geändert und gespeichert.");

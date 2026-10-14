@@ -8,8 +8,8 @@ public sealed class TicketStatisticsServiceTests
 {
     private readonly TicketStatisticsService _service = new();
 
-    private static ServiceTicket Ticket(DateTime createdAt, string? cause, int ticketNumber = 1, string? type = null, string? errorLocation = null)
-        => new(ticketNumber, createdAt, cause, type, ErrorLocation: errorLocation);
+    private static ServiceTicket Ticket(DateTime createdAt, string? cause, int ticketNumber = 1, string? type = null, string? errorLocation = null, string? addressLine = null)
+        => new(ticketNumber, createdAt, cause, type, AddressLine: addressLine, ErrorLocation: errorLocation);
 
     [Fact]
     public void Compute_TicketsWithinRange_CountsCorrectly()
@@ -302,5 +302,91 @@ public sealed class TicketStatisticsServiceTests
         var stats = _service.Compute(tickets, range, errorLocationTopCount: 0);
 
         Assert.Equal(new[] { "Ort A", "Sonstige" }, stats.ErrorLocationBreakdown.Select(c => c.Location));
+    }
+
+    [Fact]
+    public void Compute_CustomerBreakdown_KeepsTopXWithoutSonstigeGroup()
+    {
+        var tickets = new List<ServiceTicket>();
+        for (var i = 0; i < 5; i++)
+        {
+            // Absteigende Häufigkeit (5, 4, 3, 2, 1), damit die Sortierung eindeutig ist.
+            for (var count = 0; count < 5 - i; count++)
+            {
+                tickets.Add(Ticket(new DateTime(2026, 3, 1), null, addressLine: $"Kunde {i}"));
+            }
+        }
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, customerTopCount: 3);
+
+        Assert.Equal(3, stats.CustomerBreakdown.Count);
+        Assert.Equal(new[] { "Kunde 0", "Kunde 1", "Kunde 2" }, stats.CustomerBreakdown.Select(c => c.CustomerName));
+        Assert.DoesNotContain(stats.CustomerBreakdown, c => c.CustomerName == "Sonstige");
+        Assert.Equal(5, stats.CustomerBreakdown[0].Count);
+    }
+
+    [Fact]
+    public void Compute_CustomerBreakdown_FewerCustomersThanTopCount_ReturnsAll()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, addressLine: "Kunde A"),
+            Ticket(new DateTime(2026, 3, 2), null, addressLine: "Kunde B")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, customerTopCount: 15);
+
+        Assert.Equal(2, stats.CustomerBreakdown.Count);
+    }
+
+    [Fact]
+    public void Compute_CustomerBreakdown_MissingAddressLine_GroupedAsNichtAngegeben()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, addressLine: null),
+            Ticket(new DateTime(2026, 3, 2), null, addressLine: "  "),
+            Ticket(new DateTime(2026, 3, 3), null, addressLine: "Kunde A")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        Assert.Equal(2, stats.CustomerBreakdown.Single(c => c.CustomerName == "Nicht angegeben").Count);
+        Assert.Equal(1, stats.CustomerBreakdown.Single(c => c.CustomerName == "Kunde A").Count);
+    }
+
+    [Fact]
+    public void Compute_CustomerTopCountLessThanOne_TreatedAsOne()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, addressLine: "Kunde A"),
+            Ticket(new DateTime(2026, 3, 2), null, addressLine: "Kunde A"),
+            Ticket(new DateTime(2026, 3, 3), null, addressLine: "Kunde B")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, customerTopCount: 0);
+
+        Assert.Equal(new[] { "Kunde A" }, stats.CustomerBreakdown.Select(c => c.CustomerName));
+    }
+
+    [Fact]
+    public void Compute_CustomerBreakdown_CarriesMatchingTickets()
+    {
+        var tickets = new[]
+        {
+            Ticket(new DateTime(2026, 3, 1), null, ticketNumber: 101, addressLine: "Kunde A"),
+            Ticket(new DateTime(2026, 3, 2), null, ticketNumber: 102, addressLine: "Kunde A")
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        var customerA = stats.CustomerBreakdown.Single(c => c.CustomerName == "Kunde A");
+        Assert.Equal(new[] { 101, 102 }, customerA.Tickets.Select(t => t.TicketNumber));
     }
 }

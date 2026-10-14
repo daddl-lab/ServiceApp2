@@ -31,12 +31,16 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
     /// <summary>Bezeichnung, unter der Tickets ohne Störungsort-Angabe geführt werden.</summary>
     private const string UnspecifiedLocationLabel = "Nicht angegeben";
 
+    /// <summary>Bezeichnung, unter der Tickets ohne Kunden-Angabe (Adresszeile 1) geführt werden.</summary>
+    private const string UnspecifiedCustomerLabel = "Nicht angegeben";
+
     /// <inheritdoc />
     public TicketStatistics Compute(
         IReadOnlyList<ServiceTicket> tickets,
         DateRangeFilter range,
         IReadOnlyCollection<string>? selectedTypes = null,
-        int errorLocationTopCount = 8)
+        int errorLocationTopCount = 8,
+        int customerTopCount = 15)
     {
         var ticketsInRange = tickets
             .Where(t => range.Contains(DateOnly.FromDateTime(t.CreatedAt)))
@@ -48,7 +52,8 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
             TotalTickets = ticketsInRange.Count,
             TimeSeries = BuildTimeSeries(ticketsInRange, range),
             CauseBreakdown = BuildCauseBreakdown(ticketsInRange),
-            ErrorLocationBreakdown = BuildErrorLocationBreakdown(ticketsInRange, errorLocationTopCount)
+            ErrorLocationBreakdown = BuildErrorLocationBreakdown(ticketsInRange, errorLocationTopCount),
+            CustomerBreakdown = BuildCustomerBreakdown(ticketsInRange, customerTopCount)
         };
     }
 
@@ -170,5 +175,26 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
         var otherTickets = tail.SelectMany(c => c.Tickets).ToList();
         top.Add(new TicketErrorLocationCount(OtherCauseLabel, otherTickets.Count, otherTickets));
         return top;
+    }
+
+    /// <summary>
+    /// Gruppiert Tickets nach Kunde (Excel-Spalte "Adresszeile 1") für die
+    /// Kundenauswertung (Tabelle "Tickets pro Kunde"). Fehlt die Adresszeile, zählt
+    /// das Ticket als "Nicht angegeben". Anders als bei den Kuchendiagrammen gibt es
+    /// hier keinen Sammeleintrag "Sonstige": überzählige Kunden (über
+    /// <paramref name="topCount"/> hinaus) werden in der Tabelle schlicht nicht
+    /// angezeigt, da "Anzahl der angezeigten Kunden" eine reine Anzeigebegrenzung ist.
+    /// </summary>
+    private static List<TicketCustomerCount> BuildCustomerBreakdown(IReadOnlyList<ServiceTicket> tickets, int topCount)
+    {
+        var grouped = tickets
+            .GroupBy(t => string.IsNullOrWhiteSpace(t.AddressLine) ? UnspecifiedCustomerLabel : t.AddressLine.Trim())
+            .Select(g => new TicketCustomerCount(g.Key, g.Count(), g.ToList()))
+            .OrderByDescending(c => c.Count)
+            .ThenBy(c => c.CustomerName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+
+        var effectiveTopCount = Math.Max(1, topCount);
+        return grouped.Take(effectiveTopCount).ToList();
     }
 }

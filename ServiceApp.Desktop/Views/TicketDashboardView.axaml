@@ -88,6 +88,20 @@
                     </StackPanel>
                 </Border>
 
+                <Border Classes="card" MaxWidth="500" HorizontalAlignment="Left">
+                    <StackPanel>
+                        <TextBlock Text="Tickets pro Kunde" Classes="sectionTitle" />
+                        <DataGrid ItemsSource="{Binding CustomerBreakdown}" Height="420"
+                                  AutoGenerateColumns="False" IsReadOnly="True"
+                                  GridLinesVisibility="Horizontal" HeadersVisibility="Column">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Kunde" Binding="{Binding CustomerName}" Width="2*" />
+                                <DataGridTextColumn Header="Anzahl Tickets" Binding="{Binding Count}" Width="*" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
 

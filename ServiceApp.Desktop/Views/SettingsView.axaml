@@ -56,6 +56,11 @@
                                    FormatString="0" HorizontalAlignment="Left" Width="140" />
                     <TextBlock Text="{Binding TicketErrorLocationTopCountValidationMessage}" Foreground="{StaticResource MissedBrush}"
                                IsVisible="{Binding TicketErrorLocationTopCountValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="Anzahl Kunden in der Kundenauswertung (Tickets pro Kunde)" Margin="0 8 0 0" />
+                    <NumericUpDown Value="{Binding TicketCustomerTopCount}" Minimum="1" Maximum="100" Increment="1"
+                                   FormatString="0" HorizontalAlignment="Left" Width="140" />
+                    <TextBlock Text="{Binding TicketCustomerTopCountValidationMessage}" Foreground="{StaticResource MissedBrush}"
+                               IsVisible="{Binding TicketCustomerTopCountValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 </StackPanel>
             </Border>
 

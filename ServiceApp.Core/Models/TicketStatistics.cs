@@ -27,4 +27,12 @@ public sealed class TicketStatistics
     /// (Sammeleintrag "Sonstige" steht am Ende).
     /// </summary>
     public IReadOnlyList<TicketErrorLocationCount> ErrorLocationBreakdown { get; init; } = Array.Empty<TicketErrorLocationCount>();
+
+    /// <summary>
+    /// Kundenauswertung (Tickets pro Kunde), absteigend nach Häufigkeit sortiert und
+    /// auf die konfigurierte Anzahl Kunden begrenzt (siehe
+    /// <see cref="AppSettings.TicketCustomerTopCount"/>), ohne Sammeleintrag für
+    /// überzählige Kunden.
+    /// </summary>
+    public IReadOnlyList<TicketCustomerCount> CustomerBreakdown { get; init; } = Array.Empty<TicketCustomerCount>();
 }

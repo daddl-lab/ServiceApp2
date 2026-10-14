@@ -38,4 +38,10 @@ public sealed class AppSettings
     /// "Sonstige" zusammengefasst.
     /// </summary>
     public int TicketErrorLocationTopCount { get; set; } = 8;
+
+    /// <summary>
+    /// Anzahl der Kunden (Excel-Spalte "Adresszeile 1"), die in der
+    /// Kundenauswertung (Tickets pro Kunde) des Ticket-Dashboards angezeigt werden.
+    /// </summary>
+    public int TicketCustomerTopCount { get; set; } = 15;
 }

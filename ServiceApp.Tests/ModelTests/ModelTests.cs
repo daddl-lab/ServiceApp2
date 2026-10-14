@@ -59,4 +59,12 @@ public sealed class AppSettingsTests
 
         Assert.Equal(8, settings.TicketErrorLocationTopCount);
     }
+
+    [Fact]
+    public void DefaultConstructor_TicketCustomerTopCount_DefaultsToFifteen()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(15, settings.TicketCustomerTopCount);
+    }
 }

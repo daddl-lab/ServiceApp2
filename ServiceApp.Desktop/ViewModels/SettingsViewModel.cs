@@ -35,6 +35,12 @@ public sealed partial class SettingsViewModel : ViewModelBase
     private string? _ticketErrorLocationTopCountValidationMessage;
 
     [ObservableProperty]
+    private int _ticketCustomerTopCount;
+
+    [ObservableProperty]
+    private string? _ticketCustomerTopCountValidationMessage;
+
+    [ObservableProperty]
     private string? _statusMessage;
 
     /// <summary>
@@ -58,6 +64,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         SecondServiceNumber = new ServiceNumberPanelViewModel(settings.ServiceNumbers[1], folderPicker);
         _ticketExcelFilePath = settings.TicketExcelFilePath;
         _ticketErrorLocationTopCount = settings.TicketErrorLocationTopCount;
+        _ticketCustomerTopCount = settings.TicketCustomerTopCount;
     }
 
     [RelayCommand]
@@ -106,15 +113,29 @@ public sealed partial class SettingsViewModel : ViewModelBase
         return true;
     }
 
+    /// <summary>Prüft, ob die Anzahl der angezeigten Kunden in der Kundenauswertung ein gültiger Wert (mindestens 1) ist.</summary>
+    private bool ValidateTicketCustomerTopCount()
+    {
+        if (TicketCustomerTopCount < 1)
+        {
+            TicketCustomerTopCountValidationMessage = "Bitte geben Sie eine Zahl von mindestens 1 ein.";
+            return false;
+        }
+
+        TicketCustomerTopCountValidationMessage = null;
+        return true;
+    }
+
     [RelayCommand]
     private void Save()
     {
         var firstValid = FirstServiceNumber.Validate();
         var secondValid = SecondServiceNumber.Validate();
         var ticketPathValid = ValidateTicketExcelPath();
-        var topCountValid = ValidateTicketErrorLocationTopCount();
+        var errorLocationTopCountValid = ValidateTicketErrorLocationTopCount();
+        var customerTopCountValid = ValidateTicketCustomerTopCount();
 
-        if (!firstValid || !secondValid || !ticketPathValid || !topCountValid)
+        if (!firstValid || !secondValid || !ticketPathValid || !errorLocationTopCountValid || !customerTopCountValid)
         {
             StatusMessage = "Bitte prüfen Sie die markierten Felder, bevor Sie speichern.";
             return;
@@ -131,6 +152,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         };
         settings.TicketExcelFilePath = TicketExcelFilePath;
         settings.TicketErrorLocationTopCount = TicketErrorLocationTopCount;
+        settings.TicketCustomerTopCount = TicketCustomerTopCount;
 
         _settingsService.Save(settings);
         _logger.LogInformation("Einstellungen wurden über die Oberfläche geändert und gespeichert.");

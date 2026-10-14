@@ -26,11 +26,17 @@ public interface ITicketStatisticsService
     /// übrigen werden zu "Sonstige" zusammengefasst. Werte kleiner als 1 werden wie 1
     /// behandelt.
     /// </param>
+    /// <param name="customerTopCount">
+    /// Anzahl der Kunden, die in der Kundenauswertung angezeigt werden (siehe
+    /// <see cref="Models.AppSettings.TicketCustomerTopCount"/>). Werte kleiner als 1
+    /// werden wie 1 behandelt.
+    /// </param>
     TicketStatistics Compute(
         IReadOnlyList<ServiceTicket> tickets,
         DateRangeFilter range,
         IReadOnlyCollection<string>? selectedTypes = null,
-        int errorLocationTopCount = 8);
+        int errorLocationTopCount = 8,
+        int customerTopCount = 15);
 
     /// <summary>
     /// Ermittelt alle im Datenbestand vorkommenden Typ-Werte (Spalte "Typ"), alphabetisch

@@ -57,6 +57,13 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     /// </summary>
     private int _errorLocationTopCount = 8;
 
+    /// <summary>
+    /// Anzahl der in der Kundenauswertung gezeigten Kunden (siehe
+    /// <see cref="AppSettings.TicketCustomerTopCount"/>), bei jedem
+    /// <see cref="ReloadAsync"/> aus den Einstellungen übernommen.
+    /// </summary>
+    private int _customerTopCount = 15;
+
     [ObservableProperty]
     private DateRangePreset _selectedPreset = DateRangePreset.ThisMonth;
 
@@ -78,6 +85,9 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     [ObservableProperty] private Axis[] _timeSeriesXAxes = { new Axis() };
     [ObservableProperty] private ISeries[] _causeBreakdownSeries = Array.Empty<ISeries>();
     [ObservableProperty] private ISeries[] _errorLocationBreakdownSeries = Array.Empty<ISeries>();
+
+    /// <summary>Kundenauswertung (Tickets pro Kunde) für die Tabelle im Ticket-Dashboard.</summary>
+    [ObservableProperty] private IReadOnlyList<TicketCustomerCount> _customerBreakdown = Array.Empty<TicketCustomerCount>();
 
     /// <summary>
     /// Mehrfachauswahl-Filter über die Excel-Spalte "Typ", gilt für beide Diagramme.
@@ -127,6 +137,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
             var settings = await Task.Run(_settingsService.Load);
             var filePath = settings.TicketExcelFilePath;
             _errorLocationTopCount = settings.TicketErrorLocationTopCount;
+            _customerTopCount = settings.TicketCustomerTopCount;
 
             var (tickets, error) = await Task.Run(() => LoadTicketsSafely(filePath));
             _tickets = tickets;
@@ -287,7 +298,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void RecomputeStatistics()
     {
         var range = BuildCurrentRange();
-        var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes(), _errorLocationTopCount);
+        var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes(), _errorLocationTopCount, _customerTopCount);
 
         TotalTickets = stats.TotalTickets;
         TimeSeries = TicketChartFactory.CreateTimeSeriesSeries(stats.TimeSeries);
@@ -296,6 +307,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
         _causeBreakdown = stats.CauseBreakdown;
         ErrorLocationBreakdownSeries = TicketChartFactory.CreateErrorLocationBreakdownPieSeries(stats.ErrorLocationBreakdown);
         _errorLocationBreakdown = stats.ErrorLocationBreakdown;
+        CustomerBreakdown = stats.CustomerBreakdown;
 
         // Ein Zeitraum- oder Filterwechsel kann die zuvor angeklickte Ursache aus dem
         // Diagramm entfernen (z. B. keine Tickets mehr in diesem Zeitraum) - die

@@ -68,21 +68,18 @@
 
                 <Border Classes="card">
                     <StackPanel>
-                        <TextBlock Text="Fehlerursachen" Classes="sectionTitle" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Grid.Column="0" Text="{Binding CurrentBreakdownTitle}" Classes="sectionTitle" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                                <Button Content="Fehlerursachen" Command="{Binding SelectCauseBreakdownViewCommand}" />
+                                <Button Content="Störungsorte" Command="{Binding SelectErrorLocationBreakdownViewCommand}" />
+                            </StackPanel>
+                        </Grid>
                         <!-- Legende rechts statt unten: bei bis zu neun (teils zweizeiligen)
                              Einträgen würde eine untenliegende Legende in einem Diagramm
                              fester Höhe den für den Kreis selbst verfügbaren Platz auf
                              nahezu Null verdrängen. -->
-                        <lvc:PieChart x:Name="CauseBreakdownPieChart" Series="{Binding CauseBreakdownSeries}" Height="420"
-                                      InitialRotation="0" MaxAngle="360" LegendPosition="Right" />
-                        <TextBlock Text="Klick auf ein Kuchenstück zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
-                    </StackPanel>
-                </Border>
-
-                <Border Classes="card">
-                    <StackPanel>
-                        <TextBlock Text="Störungsorte" Classes="sectionTitle" />
-                        <lvc:PieChart x:Name="ErrorLocationBreakdownPieChart" Series="{Binding ErrorLocationBreakdownSeries}" Height="420"
+                        <lvc:PieChart x:Name="BreakdownPieChart" Series="{Binding CurrentBreakdownSeries}" Height="420"
                                       InitialRotation="0" MaxAngle="360" LegendPosition="Right" />
                         <TextBlock Text="Klick auf ein Kuchenstück zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
                     </StackPanel>
@@ -91,7 +88,7 @@
                 <Border Classes="card" MaxWidth="500" HorizontalAlignment="Left">
                     <StackPanel>
                         <TextBlock Text="Tickets pro Kunde" Classes="sectionTitle" />
-                        <DataGrid ItemsSource="{Binding CustomerBreakdown}" Height="420"
+                        <DataGrid x:Name="CustomerBreakdownDataGrid" ItemsSource="{Binding CustomerBreakdown}" Height="420"
                                   AutoGenerateColumns="False" IsReadOnly="True"
                                   GridLinesVisibility="Horizontal" HeadersVisibility="Column">
                             <DataGrid.Columns>
@@ -99,6 +96,7 @@
                                 <DataGridTextColumn Header="Anzahl Tickets" Binding="{Binding Count}" Width="*" />
                             </DataGrid.Columns>
                         </DataGrid>
+                        <TextBlock Text="Klick auf eine Zeile zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
                     </StackPanel>
                 </Border>
 

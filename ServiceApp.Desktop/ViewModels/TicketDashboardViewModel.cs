@@ -36,6 +36,12 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
 
     private IReadOnlyList<ServiceTicket> _tickets = Array.Empty<ServiceTicket>();
 
+    /// <summary>Zuletzt berechnete Fehlerursachen-Diagrammserie, siehe <see cref="UpdateCurrentBreakdownDisplay"/>.</summary>
+    private ISeries[] _causeBreakdownSeries = Array.Empty<ISeries>();
+
+    /// <summary>Zuletzt berechnete Störungsort-Diagrammserie, siehe <see cref="UpdateCurrentBreakdownDisplay"/>.</summary>
+    private ISeries[] _errorLocationBreakdownSeries = Array.Empty<ISeries>();
+
     /// <summary>
     /// Fehlerursachen-Aufschlüsselung der zuletzt berechneten Statistik, benötigt um
     /// beim Klick auf ein Kuchenstück (<see cref="ShowDrillDown"/>) die zugehörigen
@@ -83,8 +89,16 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
 
     [ObservableProperty] private ISeries[] _timeSeries = Array.Empty<ISeries>();
     [ObservableProperty] private Axis[] _timeSeriesXAxes = { new Axis() };
-    [ObservableProperty] private ISeries[] _causeBreakdownSeries = Array.Empty<ISeries>();
-    [ObservableProperty] private ISeries[] _errorLocationBreakdownSeries = Array.Empty<ISeries>();
+
+    /// <summary>
+    /// Welche der beiden Ticket-Verteilungen (Fehlerursachen oder Störungsorte) im
+    /// gemeinsamen Kuchendiagramm angezeigt wird, siehe
+    /// <see cref="SelectCauseBreakdownView"/>/<see cref="SelectErrorLocationBreakdownView"/>.
+    /// </summary>
+    [ObservableProperty] private TicketBreakdownViewMode _breakdownViewMode = TicketBreakdownViewMode.Cause;
+
+    [ObservableProperty] private ISeries[] _currentBreakdownSeries = Array.Empty<ISeries>();
+    [ObservableProperty] private string _currentBreakdownTitle = "Fehlerursachen";
 
     /// <summary>Kundenauswertung (Tickets pro Kunde) für die Tabelle im Ticket-Dashboard.</summary>
     [ObservableProperty] private IReadOnlyList<TicketCustomerCount> _customerBreakdown = Array.Empty<TicketCustomerCount>();
@@ -303,10 +317,11 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
         TotalTickets = stats.TotalTickets;
         TimeSeries = TicketChartFactory.CreateTimeSeriesSeries(stats.TimeSeries);
         TimeSeriesXAxes = TicketChartFactory.CreateTimeSeriesXAxes(stats.TimeSeries);
-        CauseBreakdownSeries = TicketChartFactory.CreateCauseBreakdownPieSeries(stats.CauseBreakdown);
+        _causeBreakdownSeries = TicketChartFactory.CreateCauseBreakdownPieSeries(stats.CauseBreakdown);
         _causeBreakdown = stats.CauseBreakdown;
-        ErrorLocationBreakdownSeries = TicketChartFactory.CreateErrorLocationBreakdownPieSeries(stats.ErrorLocationBreakdown);
+        _errorLocationBreakdownSeries = TicketChartFactory.CreateErrorLocationBreakdownPieSeries(stats.ErrorLocationBreakdown);
         _errorLocationBreakdown = stats.ErrorLocationBreakdown;
+        UpdateCurrentBreakdownDisplay();
         CustomerBreakdown = stats.CustomerBreakdown;
 
         // Ein Zeitraum- oder Filterwechsel kann die zuvor angeklickte Ursache aus dem
@@ -317,12 +332,65 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     }
 
     /// <summary>
+    /// Zeigt im gemeinsamen Kuchendiagramm die Fehlerursachen-Verteilung an.
+    /// </summary>
+    [RelayCommand]
+    private void SelectCauseBreakdownView()
+    {
+        BreakdownViewMode = TicketBreakdownViewMode.Cause;
+        UpdateCurrentBreakdownDisplay();
+    }
+
+    /// <summary>
+    /// Zeigt im gemeinsamen Kuchendiagramm die Störungsort-Verteilung an.
+    /// </summary>
+    [RelayCommand]
+    private void SelectErrorLocationBreakdownView()
+    {
+        BreakdownViewMode = TicketBreakdownViewMode.ErrorLocation;
+        UpdateCurrentBreakdownDisplay();
+    }
+
+    /// <summary>
+    /// Überträgt die zum aktuellen <see cref="BreakdownViewMode"/> passende, bereits
+    /// berechnete Diagrammserie (siehe <see cref="RecomputeStatistics"/>) in die
+    /// gebundene <see cref="CurrentBreakdownSeries"/>-Eigenschaft, ohne die Statistik
+    /// neu zu berechnen - ein reiner Anzeigewechsel.
+    /// </summary>
+    private void UpdateCurrentBreakdownDisplay()
+    {
+        CurrentBreakdownSeries = BreakdownViewMode == TicketBreakdownViewMode.Cause
+            ? _causeBreakdownSeries
+            : _errorLocationBreakdownSeries;
+        CurrentBreakdownTitle = BreakdownViewMode == TicketBreakdownViewMode.Cause
+            ? "Fehlerursachen"
+            : "Störungsorte";
+    }
+
+    /// <summary>
+    /// Öffnet die Drill-Down-Tabelle für das angeklickte Kuchenstück des gemeinsamen
+    /// Diagramms, je nach <see cref="BreakdownViewMode"/> anhand der Fehlerursachen-
+    /// oder der Störungsort-Aufschlüsselung. Wird vom View-Code-Behind aus dem
+    /// PointerDown-Event des Kuchendiagramms aufgerufen.
+    /// </summary>
+    public void ShowCurrentBreakdownDrillDown(string sliceName)
+    {
+        if (BreakdownViewMode == TicketBreakdownViewMode.Cause)
+        {
+            ShowDrillDown(sliceName);
+        }
+        else
+        {
+            ShowErrorLocationDrillDown(sliceName);
+        }
+    }
+
+    /// <summary>
     /// Öffnet die Drill-Down-Tabelle für die angeklickte Fehlerursache (Name der
     /// <see cref="LiveChartsCore.SkiaSharpView.PieSeries{TModel}"/>, siehe
-    /// <see cref="Charts.TicketChartFactory.CreateCauseBreakdownPieSeries"/>). Wird vom
-    /// View-Code-Behind aus dem PointerDown-Event des Kuchendiagramms aufgerufen.
+    /// <see cref="Charts.TicketChartFactory.CreateCauseBreakdownPieSeries"/>).
     /// </summary>
-    public void ShowDrillDown(string causeName)
+    private void ShowDrillDown(string causeName)
     {
         var match = _causeBreakdown.FirstOrDefault(c => c.Cause == causeName);
         if (match is null)
@@ -339,10 +407,8 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     /// Öffnet die Drill-Down-Tabelle für den angeklickten Störungsort (Name der
     /// <see cref="LiveChartsCore.SkiaSharpView.PieSeries{TModel}"/>, siehe
     /// <see cref="Charts.TicketChartFactory.CreateErrorLocationBreakdownPieSeries"/>).
-    /// Wird vom View-Code-Behind aus dem PointerDown-Event des Kuchendiagramms
-    /// aufgerufen.
     /// </summary>
-    public void ShowErrorLocationDrillDown(string locationName)
+    private void ShowErrorLocationDrillDown(string locationName)
     {
         var match = _errorLocationBreakdown.FirstOrDefault(c => c.Location == locationName);
         if (match is null)
@@ -359,5 +425,17 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void CloseDrillDown()
     {
         IsDrillDownVisible = false;
+    }
+
+    /// <summary>
+    /// Öffnet die Drill-Down-Tabelle für den in der Kundenauswertungs-Tabelle
+    /// angeklickten Kunden. Wird vom View-Code-Behind aus dem
+    /// <c>SelectionChanged</c>-Ereignis der Kunden-Tabelle aufgerufen.
+    /// </summary>
+    public void ShowCustomerDrillDown(TicketCustomerCount customer)
+    {
+        DrillDownTickets = new ObservableCollection<ServiceTicket>(customer.Tickets);
+        DrillDownTitle = $"{customer.CustomerName} ({customer.Count} Tickets)";
+        IsDrillDownVisible = true;
     }
 }

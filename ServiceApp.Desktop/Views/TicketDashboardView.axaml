@@ -11,10 +11,12 @@
         <Border Grid.Row="0" Padding="16 12" Background="{DynamicResource SystemAltHighColor}">
             <StackPanel Spacing="8">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <Button Content="Tag" Command="{Binding SelectTodayCommand}" />
                     <Button Content="Woche" Command="{Binding SelectThisWeekCommand}" />
                     <Button Content="Monat" Command="{Binding SelectThisMonthCommand}" />
                     <Button Content="Jahr" Command="{Binding SelectThisYearCommand}" />
+                    <Button Content="−" Command="{Binding ShiftPeriodBackwardCommand}" IsVisible="{Binding IsPeriodNavigationVisible}" Width="32" Margin="8 0 0 0" />
+                    <TextBlock Text="{Binding PeriodRangeText}" VerticalAlignment="Center" IsVisible="{Binding IsPeriodNavigationVisible}" MinWidth="150" TextAlignment="Center" />
+                    <Button Content="+" Command="{Binding ShiftPeriodForwardCommand}" IsVisible="{Binding IsPeriodNavigationVisible}" Width="32" />
                     <TextBlock Text="Benutzerdefiniert:" VerticalAlignment="Center" Margin="16 0 0 0" />
                     <CalendarDatePicker SelectedDate="{Binding CustomRangeStart}" Width="140" />
                     <TextBlock Text="bis" VerticalAlignment="Center" />

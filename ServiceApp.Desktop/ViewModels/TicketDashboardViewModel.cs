@@ -85,7 +85,21 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private IReadOnlyList<TicketProcessingTimeBucket> _processingTimeBreakdown = Array.Empty<TicketProcessingTimeBucket>();
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsPeriodNavigationVisible))]
     private DateRangePreset _selectedPreset = DateRangePreset.ThisMonth;
+
+    /// <summary>
+    /// Bezugsdatum für die aktuell gewählte Woche/Monat/Jahr (siehe
+    /// <see cref="ShiftPeriodBackward"/>/<see cref="ShiftPeriodForward"/>). Wird bei
+    /// Auswahl eines Zeitraum-Typs auf das heutige Datum zurückgesetzt.
+    /// </summary>
+    private DateOnly _periodAnchor = DateOnly.FromDateTime(DateTime.Now);
+
+    [ObservableProperty]
+    private string _periodRangeText = string.Empty;
+
+    /// <summary>Ob die +/- Buttons zum Umschalten der Periode angezeigt werden (nur bei Woche/Monat/Jahr sinnvoll).</summary>
+    public bool IsPeriodNavigationVisible => SelectedPreset is DateRangePreset.ThisWeek or DateRangePreset.ThisMonth or DateRangePreset.ThisYear;
 
     [ObservableProperty]
     private DateTime? _customRangeStart = DateTime.Today.AddDays(-7);
@@ -271,16 +285,10 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void SelectToday()
-    {
-        SelectedPreset = DateRangePreset.Today;
-        RecomputeStatistics();
-    }
-
-    [RelayCommand]
     private void SelectThisWeek()
     {
         SelectedPreset = DateRangePreset.ThisWeek;
+        _periodAnchor = DateOnly.FromDateTime(DateTime.Now);
         RecomputeStatistics();
     }
 
@@ -288,6 +296,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void SelectThisMonth()
     {
         SelectedPreset = DateRangePreset.ThisMonth;
+        _periodAnchor = DateOnly.FromDateTime(DateTime.Now);
         RecomputeStatistics();
     }
 
@@ -295,8 +304,34 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void SelectThisYear()
     {
         SelectedPreset = DateRangePreset.ThisYear;
+        _periodAnchor = DateOnly.FromDateTime(DateTime.Now);
         RecomputeStatistics();
     }
+
+    /// <summary>
+    /// Schaltet die aktuell gewählte Periode (Woche/Monat/Jahr) eine Einheit zurück bzw.
+    /// vor, indem das Bezugsdatum (<see cref="_periodAnchor"/>) um die Länge der
+    /// jeweiligen Periode verschoben wird.
+    /// </summary>
+    private void ShiftPeriod(int direction)
+    {
+        var currentRange = BuildCurrentRange();
+        _periodAnchor = SelectedPreset switch
+        {
+            DateRangePreset.ThisWeek => currentRange.Start.AddDays(7 * direction),
+            DateRangePreset.ThisMonth => currentRange.Start.AddMonths(direction),
+            DateRangePreset.ThisYear => currentRange.Start.AddYears(direction),
+            _ => _periodAnchor
+        };
+
+        RecomputeStatistics();
+    }
+
+    [RelayCommand]
+    private void ShiftPeriodBackward() => ShiftPeriod(-1);
+
+    [RelayCommand]
+    private void ShiftPeriodForward() => ShiftPeriod(1);
 
     [RelayCommand]
     private void ApplyCustomRange()
@@ -313,14 +348,13 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
 
     private DateRangeFilter BuildCurrentRange() => SelectedPreset switch
     {
-        DateRangePreset.Today => DateRangeFilter.Today(),
-        DateRangePreset.ThisWeek => DateRangeFilter.ThisWeek(),
-        DateRangePreset.ThisMonth => DateRangeFilter.ThisMonth(),
-        DateRangePreset.ThisYear => DateRangeFilter.ThisYear(),
+        DateRangePreset.ThisWeek => DateRangeFilter.ThisWeek(_periodAnchor),
+        DateRangePreset.ThisMonth => DateRangeFilter.ThisMonth(_periodAnchor),
+        DateRangePreset.ThisYear => DateRangeFilter.ThisYear(_periodAnchor),
         DateRangePreset.Custom => DateRangeFilter.CustomRange(
             DateOnly.FromDateTime(CustomRangeStart ?? DateTime.Today),
             DateOnly.FromDateTime(CustomRangeEnd ?? DateTime.Today)),
-        _ => DateRangeFilter.ThisMonth()
+        _ => DateRangeFilter.ThisMonth(_periodAnchor)
     };
 
     /// <summary>
@@ -330,6 +364,10 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void RecomputeStatistics()
     {
         var range = BuildCurrentRange();
+        PeriodRangeText = IsPeriodNavigationVisible
+            ? $"{range.Start:dd.MM.yyyy} – {range.End:dd.MM.yyyy}"
+            : string.Empty;
+
         var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes(), _errorLocationTopCount, _customerTopCount, _processingTimeBucketDays);
 
         TotalTickets = stats.TotalTickets;

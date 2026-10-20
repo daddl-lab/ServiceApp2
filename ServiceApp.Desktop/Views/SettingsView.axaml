@@ -61,6 +61,10 @@
                                    FormatString="0" HorizontalAlignment="Left" Width="140" />
                     <TextBlock Text="{Binding TicketCustomerTopCountValidationMessage}" Foreground="{StaticResource MissedBrush}"
                                IsVisible="{Binding TicketCustomerTopCountValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Text="Bearbeitszeit-Bereiche im Balkendiagramm (Tage, kommagetrennt, z. B. &quot;1,2,3,7,14,30,60&quot;; darüber hinaus &quot;Rest&quot;)" Margin="0 8 0 0" />
+                    <TextBox Text="{Binding TicketProcessingTimeBucketDaysText}" Watermark="1,2,3,7,14,30,60" />
+                    <TextBlock Text="{Binding TicketProcessingTimeBucketDaysValidationMessage}" Foreground="{StaticResource MissedBrush}"
+                               IsVisible="{Binding TicketProcessingTimeBucketDaysValidationMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 </StackPanel>
             </Border>
 

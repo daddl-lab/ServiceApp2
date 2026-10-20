@@ -40,6 +40,18 @@ public sealed partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string? _ticketCustomerTopCountValidationMessage;
 
+    /// <summary>
+    /// Obergrenzen der Bearbeitszeit-Bereiche (in Tagen), als kommagetrennte Liste
+    /// zur Bearbeitung in einem einzelnen Textfeld (z. B. "1,2,3,7,14,30,60"). Der
+    /// abschließende, unbegrenzte "Rest"-Bereich wird automatisch ergänzt und ist
+    /// hier nicht enthalten.
+    /// </summary>
+    [ObservableProperty]
+    private string _ticketProcessingTimeBucketDaysText = string.Empty;
+
+    [ObservableProperty]
+    private string? _ticketProcessingTimeBucketDaysValidationMessage;
+
     [ObservableProperty]
     private string? _statusMessage;
 
@@ -65,6 +77,7 @@ public sealed partial class SettingsViewModel : ViewModelBase
         _ticketExcelFilePath = settings.TicketExcelFilePath;
         _ticketErrorLocationTopCount = settings.TicketErrorLocationTopCount;
         _ticketCustomerTopCount = settings.TicketCustomerTopCount;
+        _ticketProcessingTimeBucketDaysText = string.Join(",", settings.TicketProcessingTimeBucketDays);
     }
 
     [RelayCommand]
@@ -126,6 +139,38 @@ public sealed partial class SettingsViewModel : ViewModelBase
         return true;
     }
 
+    /// <summary>
+    /// Prüft und parst die kommagetrennte Liste der Bearbeitszeit-Bereiche (jeweils
+    /// eine positive Ganzzahl in Tagen). Doppelte Werte werden entfernt, das
+    /// Ergebnis aufsteigend sortiert.
+    /// </summary>
+    private bool ValidateTicketProcessingTimeBucketDays(out List<int> parsedDays)
+    {
+        parsedDays = new List<int>();
+
+        var parts = TicketProcessingTimeBucketDaysText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+        {
+            TicketProcessingTimeBucketDaysValidationMessage = "Bitte geben Sie mindestens einen Bearbeitszeit-Bereich (in Tagen) an.";
+            return false;
+        }
+
+        foreach (var part in parts)
+        {
+            if (!int.TryParse(part, out var days) || days < 1)
+            {
+                TicketProcessingTimeBucketDaysValidationMessage = $"\"{part}\" ist keine gültige positive Ganzzahl.";
+                return false;
+            }
+
+            parsedDays.Add(days);
+        }
+
+        parsedDays = parsedDays.Distinct().OrderBy(d => d).ToList();
+        TicketProcessingTimeBucketDaysValidationMessage = null;
+        return true;
+    }
+
     [RelayCommand]
     private void Save()
     {
@@ -134,8 +179,9 @@ public sealed partial class SettingsViewModel : ViewModelBase
         var ticketPathValid = ValidateTicketExcelPath();
         var errorLocationTopCountValid = ValidateTicketErrorLocationTopCount();
         var customerTopCountValid = ValidateTicketCustomerTopCount();
+        var processingTimeBucketDaysValid = ValidateTicketProcessingTimeBucketDays(out var processingTimeBucketDays);
 
-        if (!firstValid || !secondValid || !ticketPathValid || !errorLocationTopCountValid || !customerTopCountValid)
+        if (!firstValid || !secondValid || !ticketPathValid || !errorLocationTopCountValid || !customerTopCountValid || !processingTimeBucketDaysValid)
         {
             StatusMessage = "Bitte prüfen Sie die markierten Felder, bevor Sie speichern.";
             return;
@@ -153,10 +199,15 @@ public sealed partial class SettingsViewModel : ViewModelBase
         settings.TicketExcelFilePath = TicketExcelFilePath;
         settings.TicketErrorLocationTopCount = TicketErrorLocationTopCount;
         settings.TicketCustomerTopCount = TicketCustomerTopCount;
+        settings.TicketProcessingTimeBucketDays = processingTimeBucketDays;
 
         _settingsService.Save(settings);
         _logger.LogInformation("Einstellungen wurden über die Oberfläche geändert und gespeichert.");
         StatusMessage = "Einstellungen wurden gespeichert.";
+
+        // Normalisierte (entduplizierte, sortierte) Darstellung zurück ins Textfeld
+        // schreiben, damit die Anzeige dem tatsächlich gespeicherten Wert entspricht.
+        TicketProcessingTimeBucketDaysText = string.Join(",", processingTimeBucketDays);
 
         SettingsSaved?.Invoke(this, EventArgs.Empty);
     }

@@ -477,4 +477,61 @@ public sealed class TicketStatisticsServiceTests
 
         Assert.Equal(1, stats.ProcessingTimeBreakdown.Single(b => b.Label == "1 Tag").Count);
     }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_CustomBucketDays_UsesConfiguredBoundariesAndLabels()
+    {
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(Array.Empty<ServiceTicket>(), range, processingTimeBucketDays: new[] { 5, 10, 21 });
+
+        Assert.Equal(
+            new[] { "5 Tage", "10 Tage", "3 Wochen", "Rest" },
+            stats.ProcessingTimeBreakdown.Select(b => b.Label));
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_CustomBucketDays_AssignsTicketsToConfiguredBuckets()
+    {
+        var created = new DateTime(2026, 3, 1);
+        var tickets = new[]
+        {
+            ClosedTicket(created, created.AddDays(4), ticketNumber: 1),   // 4 Tage -> 5 Tage
+            ClosedTicket(created, created.AddDays(8), ticketNumber: 2),   // 8 Tage -> 10 Tage
+            ClosedTicket(created, created.AddDays(50), ticketNumber: 3)   // 50 Tage -> Rest
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range, processingTimeBucketDays: new[] { 5, 10 });
+
+        Assert.Equal(
+            new[] { "5 Tage", "10 Tage", "Rest" },
+            stats.ProcessingTimeBreakdown.Select(b => b.Label));
+        Assert.Equal(1, stats.ProcessingTimeBreakdown.Single(b => b.Label == "5 Tage").Tickets.Single().TicketNumber);
+        Assert.Equal(2, stats.ProcessingTimeBreakdown.Single(b => b.Label == "10 Tage").Tickets.Single().TicketNumber);
+        Assert.Equal(3, stats.ProcessingTimeBreakdown.Single(b => b.Label == "Rest").Tickets.Single().TicketNumber);
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_NullOrEmptyBucketDays_FallsBackToDefaults()
+    {
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var statsNull = _service.Compute(Array.Empty<ServiceTicket>(), range, processingTimeBucketDays: null);
+        var statsEmpty = _service.Compute(Array.Empty<ServiceTicket>(), range, processingTimeBucketDays: Array.Empty<int>());
+
+        var expectedLabels = new[] { "1 Tag", "2 Tage", "3 Tage", "1 Woche", "2 Wochen", "1 Monat", "2 Monate", "Rest" };
+        Assert.Equal(expectedLabels, statsNull.ProcessingTimeBreakdown.Select(b => b.Label));
+        Assert.Equal(expectedLabels, statsEmpty.ProcessingTimeBreakdown.Select(b => b.Label));
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_BucketDays_IgnoresNonPositiveAndDuplicateValues()
+    {
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(Array.Empty<ServiceTicket>(), range, processingTimeBucketDays: new[] { 7, 0, -3, 7, 14 });
+
+        Assert.Equal(new[] { "1 Woche", "2 Wochen", "Rest" }, stats.ProcessingTimeBreakdown.Select(b => b.Label));
+    }
 }

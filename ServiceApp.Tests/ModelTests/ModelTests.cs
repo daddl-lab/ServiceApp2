@@ -67,4 +67,12 @@ public sealed class AppSettingsTests
 
         Assert.Equal(15, settings.TicketCustomerTopCount);
     }
+
+    [Fact]
+    public void DefaultConstructor_TicketProcessingTimeBucketDays_DefaultsToStandardBuckets()
+    {
+        var settings = new AppSettings();
+
+        Assert.Equal(new[] { 1, 2, 3, 7, 14, 30, 60 }, settings.TicketProcessingTimeBucketDays);
+    }
 }

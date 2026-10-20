@@ -44,4 +44,13 @@ public sealed class AppSettings
     /// Kundenauswertung (Tickets pro Kunde) des Ticket-Dashboards angezeigt werden.
     /// </summary>
     public int TicketCustomerTopCount { get; set; } = 15;
+
+    /// <summary>
+    /// Obergrenzen (in Tagen, aufsteigend) der Bearbeitszeit-Bereiche im
+    /// Bearbeitszeit-Balkendiagramm des Ticket-Dashboards. Ein zusätzlicher,
+    /// unbegrenzter "Rest"-Bereich für alles darüber wird automatisch ergänzt und
+    /// muss hier nicht enthalten sein (siehe
+    /// <see cref="Statistics.ITicketStatisticsService"/>).
+    /// </summary>
+    public List<int> TicketProcessingTimeBucketDays { get; set; } = new() { 1, 2, 3, 7, 14, 30, 60 };
 }

@@ -80,6 +80,18 @@ public sealed class JsonSettingsServiceTests : IDisposable
     }
 
     [Fact]
+    public void SaveThenLoad_RoundTripsTicketProcessingTimeBucketDays()
+    {
+        var service = new JsonSettingsService(NullLogger<JsonSettingsService>.Instance, _settingsFilePath);
+        var settings = new AppSettings { TicketProcessingTimeBucketDays = new List<int> { 5, 10, 21 } };
+
+        service.Save(settings);
+        var loaded = service.Load();
+
+        Assert.Equal(new[] { 5, 10, 21 }, loaded.TicketProcessingTimeBucketDays);
+    }
+
+    [Fact]
     public void Save_CreatesDirectoryIfItDoesNotExist()
     {
         var service = new JsonSettingsService(NullLogger<JsonSettingsService>.Instance, _settingsFilePath);

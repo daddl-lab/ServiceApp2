@@ -71,6 +71,13 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private int _customerTopCount = 15;
 
     /// <summary>
+    /// Obergrenzen (in Tagen) der Bearbeitszeit-Bereiche im Bearbeitszeit-
+    /// Balkendiagramm (siehe <see cref="AppSettings.TicketProcessingTimeBucketDays"/>),
+    /// bei jedem <see cref="ReloadAsync"/> aus den Einstellungen übernommen.
+    /// </summary>
+    private IReadOnlyCollection<int>? _processingTimeBucketDays;
+
+    /// <summary>
     /// Bearbeitszeit-Aufschlüsselung der zuletzt berechneten Statistik, benötigt um
     /// beim Klick auf einen Balken (<see cref="ShowProcessingTimeDrillDown"/>) die
     /// zugehörigen Tickets ohne erneute Neuberechnung nachzuschlagen.
@@ -162,6 +169,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
             var filePath = settings.TicketExcelFilePath;
             _errorLocationTopCount = settings.TicketErrorLocationTopCount;
             _customerTopCount = settings.TicketCustomerTopCount;
+            _processingTimeBucketDays = settings.TicketProcessingTimeBucketDays;
 
             var (tickets, error) = await Task.Run(() => LoadTicketsSafely(filePath));
             _tickets = tickets;
@@ -322,7 +330,7 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     private void RecomputeStatistics()
     {
         var range = BuildCurrentRange();
-        var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes(), _errorLocationTopCount, _customerTopCount);
+        var stats = _statisticsService.Compute(_tickets, range, GetEffectiveSelectedTypes(), _errorLocationTopCount, _customerTopCount, _processingTimeBucketDays);
 
         TotalTickets = stats.TotalTickets;
         TimeSeries = TicketChartFactory.CreateTimeSeriesSeries(stats.TimeSeries);

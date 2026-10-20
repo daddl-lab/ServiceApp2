@@ -31,12 +31,19 @@ public interface ITicketStatisticsService
     /// <see cref="Models.AppSettings.TicketCustomerTopCount"/>). Werte kleiner als 1
     /// werden wie 1 behandelt.
     /// </param>
+    /// <param name="processingTimeBucketDays">
+    /// Obergrenzen (in Tagen) der Bearbeitszeit-Bereiche im Bearbeitszeit-
+    /// Balkendiagramm (siehe <see cref="Models.AppSettings.TicketProcessingTimeBucketDays"/>).
+    /// <c>null</c> oder eine leere Menge verwendet die Standard-Bereiche. Werte
+    /// kleiner oder gleich 0 und Duplikate werden ignoriert.
+    /// </param>
     TicketStatistics Compute(
         IReadOnlyList<ServiceTicket> tickets,
         DateRangeFilter range,
         IReadOnlyCollection<string>? selectedTypes = null,
         int errorLocationTopCount = 8,
-        int customerTopCount = 15);
+        int customerTopCount = 15,
+        IReadOnlyCollection<int>? processingTimeBucketDays = null);
 
     /// <summary>
     /// Ermittelt alle im Datenbestand vorkommenden Typ-Werte (Spalte "Typ"), alphabetisch

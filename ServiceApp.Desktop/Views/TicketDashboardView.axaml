@@ -102,6 +102,14 @@
                     </Border>
                 </Grid>
 
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Bearbeitszeit (abgeschlossene Tickets)" Classes="sectionTitle" />
+                        <lvc:CartesianChart x:Name="ProcessingTimeChart" Series="{Binding ProcessingTimeSeries}" XAxes="{Binding ProcessingTimeXAxes}" Height="280" />
+                        <TextBlock Text="Klick auf einen Balken zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
         </ScrollViewer>
 

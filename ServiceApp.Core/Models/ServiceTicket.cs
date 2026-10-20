@@ -20,6 +20,16 @@ namespace ServiceApp.Core.Models;
 /// <param name="ErrorFix">Inhalt der Spalte "Fehlercode Behebung".</param>
 /// <param name="InternalStatus">Inhalt der Spalte "Interner Status".</param>
 /// <param name="Responsible">Inhalt der Spalte "Verantwortlich".</param>
+/// <param name="ExternalStatus">
+/// Inhalt der Spalte "Externer Status" (z. B. "Abgeschlossen", "In Bearbeitung").
+/// Bestimmt für die Bearbeitszeit-Auswertung, welche Tickets als abgeschlossen
+/// gelten (siehe <see cref="Statistics.ITicketStatisticsService"/>).
+/// </param>
+/// <param name="LastChangedAt">
+/// Inhalt der Spalte "Letzte Änderung". <c>null</c>, wenn die Zelle leer war oder
+/// die Spalte in der Datei nicht vorhanden ist. Zusammen mit <see cref="CreatedAt"/>
+/// Grundlage der Bearbeitszeit-Berechnung (Letzte Änderung − Anlagedatum).
+/// </param>
 public sealed record ServiceTicket(
     int TicketNumber,
     DateTime CreatedAt,
@@ -29,4 +39,6 @@ public sealed record ServiceTicket(
     string? ErrorLocation = null,
     string? ErrorFix = null,
     string? InternalStatus = null,
-    string? Responsible = null);
+    string? Responsible = null,
+    string? ExternalStatus = null,
+    DateTime? LastChangedAt = null);

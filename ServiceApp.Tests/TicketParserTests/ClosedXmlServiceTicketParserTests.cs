@@ -119,6 +119,40 @@ public sealed class ClosedXmlServiceTicketParserTests : IDisposable
         Assert.Null(ticket.ErrorFix);
         Assert.Null(ticket.InternalStatus);
         Assert.Null(ticket.Responsible);
+        Assert.Null(ticket.ExternalStatus);
+        Assert.Null(ticket.LastChangedAt);
+    }
+
+    [Fact]
+    public void Parse_WorkbookWithProcessingTimeColumns_ExtractsExternalStatusAndLastChangedAt()
+    {
+        var filePath = Path.Combine(_tempDirectory, "tickets_processing_time.xlsx");
+        TestExcelBuilder.CreateTicketWorkbookWithProcessingTime(filePath, new[]
+        {
+            (TicketNumber: 3001, CreatedAt: new DateTime(2026, 3, 1, 9, 0, 0), ExternalStatus: (string?)"Abgeschlossen", LastChangedAt: (DateTime?)new DateTime(2026, 3, 4, 10, 0, 0))
+        });
+
+        var result = _parser.Parse(filePath);
+
+        var ticket = Assert.Single(result);
+        Assert.Equal("Abgeschlossen", ticket.ExternalStatus);
+        Assert.Equal(new DateTime(2026, 3, 4, 10, 0, 0), ticket.LastChangedAt);
+    }
+
+    [Fact]
+    public void Parse_WorkbookWithEmptyLastChangedAtCell_ResultsInNullLastChangedAt()
+    {
+        var filePath = Path.Combine(_tempDirectory, "tickets_no_last_change.xlsx");
+        TestExcelBuilder.CreateTicketWorkbookWithProcessingTime(filePath, new[]
+        {
+            (TicketNumber: 3002, CreatedAt: new DateTime(2026, 3, 1), ExternalStatus: (string?)"In Bearbeitung", LastChangedAt: (DateTime?)null)
+        });
+
+        var result = _parser.Parse(filePath);
+
+        var ticket = Assert.Single(result);
+        Assert.Equal("In Bearbeitung", ticket.ExternalStatus);
+        Assert.Null(ticket.LastChangedAt);
     }
 
     [Fact]

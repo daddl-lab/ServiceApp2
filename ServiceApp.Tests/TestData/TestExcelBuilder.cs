@@ -81,6 +81,42 @@ public static class TestExcelBuilder
         workbook.SaveAs(filePath);
     }
 
+    /// <summary>
+    /// Erzeugt eine Ticket-Tabelle mit den für die Bearbeitszeit-Auswertung
+    /// benötigten Spalten (Anlagedatum, Externer Status, Letzte Änderung) zusätzlich
+    /// zu den Basisspalten aus <see cref="CreateTicketWorkbook"/>.
+    /// </summary>
+    public static void CreateTicketWorkbookWithProcessingTime(
+        string filePath,
+        IEnumerable<(int TicketNumber, DateTime CreatedAt, string? ExternalStatus, DateTime? LastChangedAt)> tickets)
+    {
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("Procedure");
+
+        worksheet.Cell(1, 1).Value = "Ticketnummer";
+        worksheet.Cell(1, 2).Value = "Anlagedatum";
+        worksheet.Cell(1, 3).Value = "Fehlercode Ursache";
+        worksheet.Cell(1, 4).Value = "Externer Status";
+        worksheet.Cell(1, 5).Value = "Letzte Änderung";
+
+        var row = 2;
+        foreach (var t in tickets)
+        {
+            worksheet.Cell(row, 1).Value = t.TicketNumber;
+            worksheet.Cell(row, 2).Value = t.CreatedAt;
+            worksheet.Cell(row, 3).Value = "Ursache";
+            worksheet.Cell(row, 4).Value = t.ExternalStatus;
+            if (t.LastChangedAt.HasValue)
+            {
+                worksheet.Cell(row, 5).Value = t.LastChangedAt.Value;
+            }
+
+            row++;
+        }
+
+        workbook.SaveAs(filePath);
+    }
+
     /// <summary>Erzeugt eine Excel-Datei ohne die Spalte "Anlagedatum", um Formatfehler zu testen.</summary>
     public static void CreateWorkbookMissingRequiredColumns(string filePath)
     {

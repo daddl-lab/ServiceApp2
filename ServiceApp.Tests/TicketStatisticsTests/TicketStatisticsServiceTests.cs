@@ -11,6 +11,9 @@ public sealed class TicketStatisticsServiceTests
     private static ServiceTicket Ticket(DateTime createdAt, string? cause, int ticketNumber = 1, string? type = null, string? errorLocation = null, string? addressLine = null)
         => new(ticketNumber, createdAt, cause, type, AddressLine: addressLine, ErrorLocation: errorLocation);
 
+    private static ServiceTicket ClosedTicket(DateTime createdAt, DateTime lastChangedAt, int ticketNumber = 1)
+        => new(ticketNumber, createdAt, Cause: null, Type: null, ExternalStatus: "Abgeschlossen", LastChangedAt: lastChangedAt);
+
     [Fact]
     public void Compute_TicketsWithinRange_CountsCorrectly()
     {
@@ -388,5 +391,90 @@ public sealed class TicketStatisticsServiceTests
 
         var customerA = stats.CustomerBreakdown.Single(c => c.CustomerName == "Kunde A");
         Assert.Equal(new[] { 101, 102 }, customerA.Tickets.Select(t => t.TicketNumber));
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_AlwaysReturnsAllEightBucketsInFixedOrder()
+    {
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(Array.Empty<ServiceTicket>(), range);
+
+        Assert.Equal(
+            new[] { "1 Tag", "2 Tage", "3 Tage", "1 Woche", "2 Wochen", "1 Monat", "2 Monate", "Rest" },
+            stats.ProcessingTimeBreakdown.Select(b => b.Label));
+        Assert.All(stats.ProcessingTimeBreakdown, b => Assert.Equal(0, b.Count));
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_AssignsTicketsToCorrectBucketByDays()
+    {
+        var created = new DateTime(2026, 3, 1);
+        var tickets = new[]
+        {
+            ClosedTicket(created, created.AddHours(12), ticketNumber: 1),   // 0.5 Tage -> 1 Tag
+            ClosedTicket(created, created.AddDays(1.5), ticketNumber: 2),   // 1.5 Tage -> 2 Tage
+            ClosedTicket(created, created.AddDays(2.5), ticketNumber: 3),   // 2.5 Tage -> 3 Tage
+            ClosedTicket(created, created.AddDays(5), ticketNumber: 4),     // 5 Tage -> 1 Woche
+            ClosedTicket(created, created.AddDays(10), ticketNumber: 5),    // 10 Tage -> 2 Wochen
+            ClosedTicket(created, created.AddDays(20), ticketNumber: 6),    // 20 Tage -> 1 Monat
+            ClosedTicket(created, created.AddDays(45), ticketNumber: 7),    // 45 Tage -> 2 Monate
+            ClosedTicket(created, created.AddDays(90), ticketNumber: 8)     // 90 Tage -> Rest
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        Assert.All(stats.ProcessingTimeBreakdown, b => Assert.Equal(1, b.Count));
+        Assert.Equal(1, stats.ProcessingTimeBreakdown.Single(b => b.Label == "1 Tag").Tickets.Single().TicketNumber);
+        Assert.Equal(8, stats.ProcessingTimeBreakdown.Single(b => b.Label == "Rest").Tickets.Single().TicketNumber);
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_ExcludesTicketsNotClosed()
+    {
+        var created = new DateTime(2026, 3, 1);
+        var tickets = new[]
+        {
+            ClosedTicket(created, created.AddDays(1)),
+            new ServiceTicket(2, created, Cause: null, Type: null, ExternalStatus: "In Bearbeitung", LastChangedAt: created.AddDays(1))
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        Assert.Equal(1, stats.ProcessingTimeBreakdown.Sum(b => b.Count));
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_ExcludesTicketsWithoutLastChangedAt()
+    {
+        var created = new DateTime(2026, 3, 1);
+        var tickets = new[]
+        {
+            new ServiceTicket(1, created, Cause: null, Type: null, ExternalStatus: "Abgeschlossen", LastChangedAt: null)
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        Assert.Equal(0, stats.ProcessingTimeBreakdown.Sum(b => b.Count));
+    }
+
+    [Fact]
+    public void Compute_ProcessingTimeBreakdown_NegativeProcessingTime_ClampedIntoFirstBucket()
+    {
+        var created = new DateTime(2026, 3, 10);
+        var tickets = new[]
+        {
+            // Letzte Änderung liegt vor dem Anlagedatum - fehlerhafte Daten, sollen
+            // aber nicht zum Ausschluss des Tickets führen.
+            ClosedTicket(created, created.AddDays(-5))
+        };
+        var range = DateRangeFilter.ThisMonth(new DateOnly(2026, 3, 15));
+
+        var stats = _service.Compute(tickets, range);
+
+        Assert.Equal(1, stats.ProcessingTimeBreakdown.Single(b => b.Label == "1 Tag").Count);
     }
 }

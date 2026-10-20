@@ -24,6 +24,8 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
     private const string ErrorFixColumn = "Fehlercode Behebung";
     private const string InternalStatusColumn = "Interner Status";
     private const string ResponsibleColumn = "Verantwortlich";
+    private const string ExternalStatusColumn = "Externer Status";
+    private const string LastChangedAtColumn = "Letzte Änderung";
 
     private readonly ILogger<ClosedXmlServiceTicketParser> _logger;
 
@@ -98,6 +100,11 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
             var errorFixColumnIndex = columnIndexes.GetValueOrDefault(ErrorFixColumn, -1);
             var internalStatusColumnIndex = columnIndexes.GetValueOrDefault(InternalStatusColumn, -1);
             var responsibleColumnIndex = columnIndexes.GetValueOrDefault(ResponsibleColumn, -1);
+            // Für die Bearbeitszeit-Auswertung benötigt, ebenfalls optional, damit
+            // Dateien ohne diese Spalten weiterhin importierbar bleiben (die
+            // Bearbeitszeit-Statistik zeigt dann schlicht keine Tickets).
+            var externalStatusColumnIndex = columnIndexes.GetValueOrDefault(ExternalStatusColumn, -1);
+            var lastChangedAtColumnIndex = columnIndexes.GetValueOrDefault(LastChangedAtColumn, -1);
 
             var tickets = new List<ServiceTicket>();
             var skippedRows = 0;
@@ -133,6 +140,12 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
                 var errorFix = ReadOptionalString(row, errorFixColumnIndex);
                 var internalStatus = ReadOptionalString(row, internalStatusColumnIndex);
                 var responsible = ReadOptionalString(row, responsibleColumnIndex);
+                var externalStatus = ReadOptionalString(row, externalStatusColumnIndex);
+                DateTime? lastChangedAt = null;
+                if (lastChangedAtColumnIndex > 0 && row.Cell(lastChangedAtColumnIndex).TryGetValue(out DateTime lastChangedAtValue))
+                {
+                    lastChangedAt = lastChangedAtValue;
+                }
 
                 tickets.Add(new ServiceTicket(
                     ticketNumber,
@@ -143,7 +156,9 @@ public sealed class ClosedXmlServiceTicketParser : IServiceTicketParser
                     errorLocation,
                     errorFix,
                     internalStatus,
-                    responsible));
+                    responsible,
+                    externalStatus,
+                    lastChangedAt));
             }
 
             _logger.LogInformation(

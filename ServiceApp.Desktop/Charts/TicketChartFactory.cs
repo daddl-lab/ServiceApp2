@@ -107,4 +107,30 @@ public static class TicketChartFactory
 
         return series.ToArray();
     }
+
+    /// <summary>Balkendiagramm der Bearbeitszeit-Verteilung (nur abgeschlossene Tickets).</summary>
+    public static ISeries[] CreateProcessingTimeBreakdownSeries(IReadOnlyList<TicketProcessingTimeBucket> processingTimeBreakdown)
+    {
+        return new ISeries[]
+        {
+            new ColumnSeries<int>
+            {
+                Name = "Tickets",
+                Values = processingTimeBreakdown.Select(b => b.Count).ToArray(),
+                Fill = new SolidColorPaint(TrendColor)
+            }
+        };
+    }
+
+    /// <summary>Beschriftungen der X-Achse für das Bearbeitszeit-Diagramm.</summary>
+    public static Axis[] CreateProcessingTimeXAxes(IReadOnlyList<TicketProcessingTimeBucket> processingTimeBreakdown)
+    {
+        return new[]
+        {
+            new Axis
+            {
+                Labels = processingTimeBreakdown.Select(b => b.Label).ToArray()
+            }
+        };
+    }
 }

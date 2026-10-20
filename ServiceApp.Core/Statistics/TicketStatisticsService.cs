@@ -34,6 +34,27 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
     /// <summary>Bezeichnung, unter der Tickets ohne Kunden-Angabe (Adresszeile 1) geführt werden.</summary>
     private const string UnspecifiedCustomerLabel = "Nicht angegeben";
 
+    /// <summary>Wert der Spalte "Externer Status", der ein abgeschlossenes Ticket kennzeichnet.</summary>
+    private const string ClosedExternalStatus = "Abgeschlossen";
+
+    /// <summary>
+    /// Feste, aufsteigend sortierte Bearbeitszeit-Bereiche (in Tagen, Letzte Änderung
+    /// − Anlagedatum) für das Bearbeitszeit-Balkendiagramm. <c>MaxDays</c> ist die
+    /// (inklusive) Obergrenze des Bereichs; <c>null</c> markiert den letzten,
+    /// unbegrenzten Bereich ("Rest").
+    /// </summary>
+    private static readonly (string Label, double? MaxDays)[] ProcessingTimeBuckets =
+    {
+        ("1 Tag", 1),
+        ("2 Tage", 2),
+        ("3 Tage", 3),
+        ("1 Woche", 7),
+        ("2 Wochen", 14),
+        ("1 Monat", 30),
+        ("2 Monate", 60),
+        ("Rest", null)
+    };
+
     /// <inheritdoc />
     public TicketStatistics Compute(
         IReadOnlyList<ServiceTicket> tickets,
@@ -53,7 +74,8 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
             TimeSeries = BuildTimeSeries(ticketsInRange, range),
             CauseBreakdown = BuildCauseBreakdown(ticketsInRange),
             ErrorLocationBreakdown = BuildErrorLocationBreakdown(ticketsInRange, errorLocationTopCount),
-            CustomerBreakdown = BuildCustomerBreakdown(ticketsInRange, customerTopCount)
+            CustomerBreakdown = BuildCustomerBreakdown(ticketsInRange, customerTopCount),
+            ProcessingTimeBreakdown = BuildProcessingTimeBreakdown(ticketsInRange)
         };
     }
 
@@ -196,5 +218,49 @@ public sealed class TicketStatisticsService : ITicketStatisticsService
 
         var effectiveTopCount = Math.Max(1, topCount);
         return grouped.Take(effectiveTopCount).ToList();
+    }
+
+    /// <summary>
+    /// Gruppiert abgeschlossene Tickets (Excel-Spalte "Externer Status" =
+    /// "Abgeschlossen") nach Bearbeitszeit (Letzte Änderung − Anlagedatum, in Tagen)
+    /// in die festen Bereiche aus <see cref="ProcessingTimeBuckets"/>. Tickets mit
+    /// einem anderen externen Status oder ohne "Letzte Änderung" (Spalte fehlt oder
+    /// Zelle leer) werden nicht berücksichtigt, da für sie keine Bearbeitszeit
+    /// bekannt ist. Eine negative Bearbeitszeit (z. B. durch fehlerhafte Daten in
+    /// der Exceldatei) wird auf 0 Tage begrenzt, statt das Ticket auszuschließen.
+    /// Anders als bei den übrigen Verteilungen ist die Reihenfolge der
+    /// zurückgegebenen Buckets fest (aufsteigende Bearbeitszeit) statt nach
+    /// Häufigkeit sortiert, und alle Buckets werden auch bei Anzahl 0 zurückgegeben,
+    /// damit die X-Achse des Diagramms stets alle Bereiche zeigt.
+    /// </summary>
+    private static List<TicketProcessingTimeBucket> BuildProcessingTimeBreakdown(IReadOnlyList<ServiceTicket> tickets)
+    {
+        var closedTickets = tickets
+            .Where(t => string.Equals(t.ExternalStatus?.Trim(), ClosedExternalStatus, StringComparison.OrdinalIgnoreCase))
+            .Where(t => t.LastChangedAt.HasValue)
+            .ToList();
+
+        var bucketedTickets = ProcessingTimeBuckets.Select(_ => new List<ServiceTicket>()).ToList();
+
+        foreach (var ticket in closedTickets)
+        {
+            var processingDays = Math.Max(0, (ticket.LastChangedAt!.Value - ticket.CreatedAt).TotalDays);
+            var bucketIndex = ProcessingTimeBuckets.Length - 1;
+            for (var i = 0; i < ProcessingTimeBuckets.Length; i++)
+            {
+                var maxDays = ProcessingTimeBuckets[i].MaxDays;
+                if (maxDays is null || processingDays <= maxDays.Value)
+                {
+                    bucketIndex = i;
+                    break;
+                }
+            }
+
+            bucketedTickets[bucketIndex].Add(ticket);
+        }
+
+        return ProcessingTimeBuckets
+            .Select((bucket, index) => new TicketProcessingTimeBucket(bucket.Label, bucketedTickets[index].Count, bucketedTickets[index]))
+            .ToList();
     }
 }

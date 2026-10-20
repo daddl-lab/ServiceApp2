@@ -70,6 +70,13 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     /// </summary>
     private int _customerTopCount = 15;
 
+    /// <summary>
+    /// Bearbeitszeit-Aufschlüsselung der zuletzt berechneten Statistik, benötigt um
+    /// beim Klick auf einen Balken (<see cref="ShowProcessingTimeDrillDown"/>) die
+    /// zugehörigen Tickets ohne erneute Neuberechnung nachzuschlagen.
+    /// </summary>
+    private IReadOnlyList<TicketProcessingTimeBucket> _processingTimeBreakdown = Array.Empty<TicketProcessingTimeBucket>();
+
     [ObservableProperty]
     private DateRangePreset _selectedPreset = DateRangePreset.ThisMonth;
 
@@ -102,6 +109,9 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
 
     /// <summary>Kundenauswertung (Tickets pro Kunde) für die Tabelle im Ticket-Dashboard.</summary>
     [ObservableProperty] private IReadOnlyList<TicketCustomerCount> _customerBreakdown = Array.Empty<TicketCustomerCount>();
+
+    [ObservableProperty] private ISeries[] _processingTimeSeries = Array.Empty<ISeries>();
+    [ObservableProperty] private Axis[] _processingTimeXAxes = { new Axis() };
 
     /// <summary>
     /// Mehrfachauswahl-Filter über die Excel-Spalte "Typ", gilt für beide Diagramme.
@@ -323,6 +333,9 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
         _errorLocationBreakdown = stats.ErrorLocationBreakdown;
         UpdateCurrentBreakdownDisplay();
         CustomerBreakdown = stats.CustomerBreakdown;
+        ProcessingTimeSeries = TicketChartFactory.CreateProcessingTimeBreakdownSeries(stats.ProcessingTimeBreakdown);
+        ProcessingTimeXAxes = TicketChartFactory.CreateProcessingTimeXAxes(stats.ProcessingTimeBreakdown);
+        _processingTimeBreakdown = stats.ProcessingTimeBreakdown;
 
         // Ein Zeitraum- oder Filterwechsel kann die zuvor angeklickte Ursache aus dem
         // Diagramm entfernen (z. B. keine Tickets mehr in diesem Zeitraum) - die
@@ -436,6 +449,28 @@ public sealed partial class TicketDashboardViewModel : ViewModelBase
     {
         DrillDownTickets = new ObservableCollection<ServiceTicket>(customer.Tickets);
         DrillDownTitle = $"{customer.CustomerName} ({customer.Count} Tickets)";
+        IsDrillDownVisible = true;
+    }
+
+    /// <summary>
+    /// Öffnet die Drill-Down-Tabelle für den angeklickten Balken des
+    /// Bearbeitszeit-Diagramms. Anders als bei den Kuchendiagrammen trägt die
+    /// einzige Balkenserie keinen pro-Balken unterscheidbaren Namen, daher wird hier
+    /// der Index des angeklickten Datenpunkts verwendet, der der Position des
+    /// Bearbeitszeit-Bereichs in <see cref="Charts.TicketChartFactory.CreateProcessingTimeBreakdownSeries"/>
+    /// entspricht. Wird vom View-Code-Behind aus dem PointerDown-Event des
+    /// Diagramms aufgerufen.
+    /// </summary>
+    public void ShowProcessingTimeDrillDown(int bucketIndex)
+    {
+        if (bucketIndex < 0 || bucketIndex >= _processingTimeBreakdown.Count)
+        {
+            return;
+        }
+
+        var bucket = _processingTimeBreakdown[bucketIndex];
+        DrillDownTickets = new ObservableCollection<ServiceTicket>(bucket.Tickets);
+        DrillDownTitle = $"Bearbeitszeit {bucket.Label} ({bucket.Count} Tickets)";
         IsDrillDownVisible = true;
     }
 }

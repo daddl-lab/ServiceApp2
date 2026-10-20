@@ -35,4 +35,11 @@ public sealed class TicketStatistics
     /// überzählige Kunden.
     /// </summary>
     public IReadOnlyList<TicketCustomerCount> CustomerBreakdown { get; init; } = Array.Empty<TicketCustomerCount>();
+
+    /// <summary>
+    /// Bearbeitszeit-Verteilung (nur abgeschlossene Tickets, Externer Status =
+    /// "Abgeschlossen"), in fester Reihenfolge aufsteigender Bearbeitszeit-Bereiche
+    /// (siehe <see cref="Statistics.ITicketStatisticsService"/>).
+    /// </summary>
+    public IReadOnlyList<TicketProcessingTimeBucket> ProcessingTimeBreakdown { get; init; } = Array.Empty<TicketProcessingTimeBucket>();
 }

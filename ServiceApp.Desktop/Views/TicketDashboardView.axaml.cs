@@ -13,6 +13,7 @@ public partial class TicketDashboardView : UserControl
         InitializeComponent();
         BreakdownPieChart.ChartPointPointerDown += OnBreakdownSlicePointerDown;
         CustomerBreakdownDataGrid.SelectionChanged += OnCustomerRowSelectionChanged;
+        ProcessingTimeChart.ChartPointPointerDown += OnProcessingTimeBarPointerDown;
     }
 
     /// <summary>
@@ -43,6 +44,22 @@ public partial class TicketDashboardView : UserControl
         {
             viewModel.ShowCustomerDrillDown(customer);
             CustomerBreakdownDataGrid.SelectedItem = null;
+        }
+    }
+
+    /// <summary>
+    /// Öffnet die Drill-Down-Tabelle für den angeklickten Balken des
+    /// Bearbeitszeit-Diagramms. Die einzige Balkenserie hat keinen pro-Balken
+    /// unterscheidbaren Namen, daher wird hier der Index des angeklickten
+    /// Datenpunkts verwendet (entspricht der Position in der festen
+    /// Bearbeitszeit-Bucket-Reihenfolge), siehe
+    /// <see cref="ViewModels.TicketDashboardViewModel.ShowProcessingTimeDrillDown"/>.
+    /// </summary>
+    private void OnProcessingTimeBarPointerDown(IChartView chart, ChartPoint? point)
+    {
+        if (point is not null && DataContext is TicketDashboardViewModel viewModel)
+        {
+            viewModel.ShowProcessingTimeDrillDown(point.Index);
         }
     }
 }

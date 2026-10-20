@@ -59,12 +59,22 @@
                     </StackPanel>
                 </Border>
 
-                <Border Classes="card">
-                    <StackPanel>
-                        <TextBlock Text="Zeitlicher Verlauf (Anlagedatum)" Classes="sectionTitle" />
-                        <lvc:CartesianChart Series="{Binding TimeSeries}" XAxes="{Binding TimeSeriesXAxes}" Height="280" />
-                    </StackPanel>
-                </Border>
+                <Grid ColumnDefinitions="*,*">
+                    <Border Grid.Column="0" Classes="card">
+                        <StackPanel>
+                            <TextBlock Text="Zeitlicher Verlauf (Anlagedatum)" Classes="sectionTitle" />
+                            <lvc:CartesianChart Series="{Binding TimeSeries}" XAxes="{Binding TimeSeriesXAxes}" Height="280" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Classes="card" Margin="16 0 0 0">
+                        <StackPanel>
+                            <TextBlock Text="Bearbeitszeit (abgeschlossene Tickets)" Classes="sectionTitle" />
+                            <lvc:CartesianChart x:Name="ProcessingTimeChart" Series="{Binding ProcessingTimeSeries}" XAxes="{Binding ProcessingTimeXAxes}" Height="280" />
+                            <TextBlock Text="Klick auf einen Balken zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
 
                 <Grid ColumnDefinitions="Auto,*">
                     <Border Grid.Column="0" Classes="card" Width="500" VerticalAlignment="Stretch">
@@ -101,14 +111,6 @@
                         </StackPanel>
                     </Border>
                 </Grid>
-
-                <Border Classes="card">
-                    <StackPanel>
-                        <TextBlock Text="Bearbeitszeit (abgeschlossene Tickets)" Classes="sectionTitle" />
-                        <lvc:CartesianChart x:Name="ProcessingTimeChart" Series="{Binding ProcessingTimeSeries}" XAxes="{Binding ProcessingTimeXAxes}" Height="280" />
-                        <TextBlock Text="Klick auf einen Balken zeigt die zugehörigen Tickets als Tabelle." Classes="hint" Margin="0 4 0 0" />
-                    </StackPanel>
-                </Border>
 
             </StackPanel>
         </ScrollViewer>
